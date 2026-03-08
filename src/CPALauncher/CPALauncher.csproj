@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>CPALauncher</AssemblyName>
+    <RootNamespace>CPALauncher</RootNamespace>
+    <Company>CPADock</Company>
+    <Product>CPA Launcher</Product>
+    <Description>用于封装 CLIProxyAPI 本地运行生命周期的 Windows 启动器。</Description>
+    <ApplicationIcon>assets\app.ico</ApplicationIcon>
+    <Version>0.1.0</Version>
+    <FileVersion>0.1.0.0</FileVersion>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <InformationalVersion>0.1.0-local</InformationalVersion>
+  </PropertyGroup>
+
+</Project>
