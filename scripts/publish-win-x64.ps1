@@ -8,6 +8,7 @@ Set-StrictMode -Version Latest
 
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $ProjectFile = Join-Path $ProjectRoot "src\CPALauncher\CPALauncher.csproj"
+$PublishProfile = "SingleFile"
 
 $ModeName = if ($FrameworkDependent) { "framework-dependent" } else { "self-contained" }
 $PublishDir = Join-Path $ProjectRoot "artifacts\publish\$Runtime\$ModeName"
@@ -28,11 +29,7 @@ $PublishArgs = @(
     "-c", "Release",
     "-r", $Runtime,
     "-o", $PublishDir,
-    "-p:PublishSingleFile=true",
-    "-p:EnableCompressionInSingleFile=true",
-    "-p:IncludeNativeLibrariesForSelfExtract=true",
-    "-p:DebugType=None",
-    "-p:DebugSymbols=false"
+    "-p:PublishProfile=$PublishProfile"
 )
 
 if ($FrameworkDependent) {
@@ -51,6 +48,18 @@ if ($LASTEXITCODE -ne 0) {
 $PublishedExe = Join-Path $PublishDir "CPALauncher.exe"
 if (-not (Test-Path $PublishedExe)) {
     throw "Published CPALauncher.exe was not found: $PublishedExe"
+}
+
+$PublishedFiles = @(Get-ChildItem -Path $PublishDir -Recurse -File)
+$UnexpectedFiles = @($PublishedFiles | Where-Object {
+    $_.FullName -ne $PublishedExe
+})
+
+if ($UnexpectedFiles.Count -gt 0) {
+    $UnexpectedList = $UnexpectedFiles |
+        Sort-Object FullName |
+        ForEach-Object { $_.FullName.Replace($PublishDir, '.').TrimStart('\\') }
+    throw "Publish output is not a true single-file bundle. Unexpected files:`n - $($UnexpectedList -join "`n - ")"
 }
 
 Write-Host "==> Assembling deliverable folder"

@@ -91,8 +91,10 @@ CPALauncher/
 ## 发布与交付
 
 - 发布脚本：`scripts\publish-win-x64.ps1`
+- 发布配置：`src\CPALauncher\Properties\PublishProfiles\SingleFile.pubxml`
 - 默认模式：`win-x64` 单文件、自包含发布
 - 一键发布命令：`powershell -ExecutionPolicy Bypass -File .\scripts\publish-win-x64.ps1`
 - 发布产物目录：`artifacts\publish\win-x64\self-contained`
 - 可交付目录：`artifacts\release\CPALauncher-win-x64-self-contained`
 - 压缩包：`artifacts\release\CPALauncher-win-x64-self-contained.zip`
+- `bin\Debug` / `bin\Release` 属于开发构建输出，不等于最终交付；真正可分发的单文件 exe 以 `artifacts\release` 下的产物为准
