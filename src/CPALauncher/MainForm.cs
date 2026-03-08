@@ -193,7 +193,7 @@ public sealed class MainForm : Form
 		tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 124f));
 		tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 184f));
 		tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 172f));
-		tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 332f));
+		tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 380f));
 		tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 		base.Controls.Add(tableLayoutPanel);
 		tableLayoutPanel.Controls.Add(BuildHeader(), 0, 0);
@@ -502,7 +502,7 @@ public sealed class MainForm : Form
 			Margin = new Padding(6, 5, 0, 0)
 		}, 2, 0);
 		lblSettingsNote.AutoSize = true;
-		lblSettingsNote.MaximumSize = new Size(560, 0);
+		lblSettingsNote.MaximumSize = new Size(760, 0);
 		lblSettingsNote.Font = new Font("Segoe UI", 9f);
 		lblSettingsNote.ForeColor = SystemColors.GrayText;
 		lblSettingsNote.Margin = new Padding(3, 6, 3, 0);

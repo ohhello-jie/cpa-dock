@@ -44,8 +44,8 @@ public sealed class SetupWizardForm : Form
 		base.MaximizeBox = false;
 		base.MinimizeBox = false;
 		base.ShowInTaskbar = false;
-		base.ClientSize = new Size(980, 760);
-		MinimumSize = new Size(920, 700);
+		base.ClientSize = new Size(980, 820);
+		MinimumSize = new Size(920, 760);
 		Font = new Font("Segoe UI", 9f);
 		base.AutoScaleMode = AutoScaleMode.Dpi;
 		TableLayoutPanel tableLayoutPanel = new TableLayoutPanel
@@ -57,7 +57,7 @@ public sealed class SetupWizardForm : Form
 		};
 		tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
 		tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-		tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 184f));
+		tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 172f));
 		tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 		tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 60f));
 		base.Controls.Add(tableLayoutPanel);
@@ -95,7 +95,7 @@ public sealed class SetupWizardForm : Form
 		Label control2 = new Label
 		{
 			AutoSize = true,
-			MaximumSize = new Size(900, 0),
+			MaximumSize = new Size(980, 0),
 			Font = new Font("Segoe UI", 10f),
 			ForeColor = SystemColors.GrayText,
 			Text = "这个向导只负责告诉启动器：你的 cli-proxy-api.exe 在哪里、你的 config.yaml 在哪里，以及启动器自己的几个习惯选项。它不会改写现有 CPA 配置。",
@@ -114,7 +114,7 @@ public sealed class SetupWizardForm : Form
 		Label control3 = new Label
 		{
 			AutoSize = true,
-			MaximumSize = new Size(900, 0),
+			MaximumSize = new Size(980, 0),
 			Font = new Font("Segoe UI", 9f),
 			ForeColor = SystemColors.GrayText,
 			Text = "常见建议：exe 与 config.yaml 最好放同目录；如果勾选开机自启，通常也建议同时勾选自动拉起服务。",
