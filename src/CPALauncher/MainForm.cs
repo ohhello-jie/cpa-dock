@@ -129,6 +129,8 @@ public sealed class MainForm : Form
 
 	private bool trayHintShown;
 
+	private bool isHidingToTray;
+
 	private readonly bool startMinimizedToTray;
 
 	public MainForm(bool startMinimizedToTray = false)
@@ -767,7 +769,7 @@ public sealed class MainForm : Form
 
 	private void MainForm_Resize(object? sender, EventArgs e)
 	{
-		if (base.WindowState == FormWindowState.Minimized)
+		if (!isHidingToTray && base.WindowState == FormWindowState.Minimized)
 		{
 			HideToTray();
 		}
@@ -778,7 +780,10 @@ public sealed class MainForm : Form
 		if (!isExiting && e.CloseReason == CloseReason.UserClosing && chkMinimizeToTray.Checked)
 		{
 			e.Cancel = true;
-			HideToTray();
+			BeginInvoke((Action)delegate
+			{
+				HideToTray();
+			});
 			return;
 		}
 		if (processManager.IsManagedProcessRunning)
@@ -1372,13 +1377,29 @@ public sealed class MainForm : Form
 
 	private void HideToTray()
 	{
-		Hide();
-		base.ShowInTaskbar = false;
-		trayIcon.Visible = true;
-		if (!trayHintShown && !startMinimizedToTray)
+		if (isHidingToTray)
 		{
-			trayIcon.ShowBalloonTip(2000, "CPA Launcher", "窗口已最小化到系统托盘，双击托盘图标可恢复。", ToolTipIcon.Info);
-			trayHintShown = true;
+			return;
+		}
+		isHidingToTray = true;
+		try
+		{
+			if (base.WindowState == FormWindowState.Maximized)
+			{
+				base.WindowState = FormWindowState.Normal;
+			}
+			Hide();
+			base.ShowInTaskbar = false;
+			trayIcon.Visible = true;
+			if (!trayHintShown && !startMinimizedToTray)
+			{
+				trayIcon.ShowBalloonTip(2000, "CPA Launcher", "窗口已最小化到系统托盘，双击托盘图标可恢复。", ToolTipIcon.Info);
+				trayHintShown = true;
+			}
+		}
+		finally
+		{
+			isHidingToTray = false;
 		}
 	}
 
