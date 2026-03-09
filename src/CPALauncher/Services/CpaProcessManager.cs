@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.ComponentModel;
 using System.Diagnostics;
 
 namespace CPALauncher.Services;
@@ -9,6 +10,7 @@ public sealed class CpaProcessManager : IDisposable
     private readonly object syncRoot = new();
     private readonly ConcurrentQueue<string> recentOutput = new();
     private Process? managedProcess;
+    private Process? stoppingProcess;
 
     public event EventHandler<string>? OutputReceived;
 
@@ -111,18 +113,74 @@ public sealed class CpaProcessManager : IDisposable
                 managedProcess = null;
                 return ProcessCommandResult.Succeeded("当前没有由启动器托管的 CPA 进程。", true);
             }
+
+            stoppingProcess = process;
         }
 
         try
         {
-            HandleOutput("launcher", $"正在停止 CPA 进程，PID={process.Id}");
-            process.Kill(entireProcessTree: true);
-            await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5));
+            var processId = TryGetProcessId(process);
+            HandleOutput("launcher", processId.HasValue
+                ? $"正在停止 CPA 进程，PID={processId.Value}"
+                : "正在停止 CPA 进程。");
+
+            if (!HasProcessAlreadyExited(process))
+            {
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+                catch (InvalidOperationException) when (HasProcessAlreadyExited(process))
+                {
+                    return ProcessCommandResult.Succeeded("CPA 进程在停止过程中已自行退出。", true);
+                }
+                catch (ObjectDisposedException) when (HasProcessAlreadyExited(process))
+                {
+                    return ProcessCommandResult.Succeeded("CPA 进程在停止过程中已自行退出。", true);
+                }
+                catch (Win32Exception) when (HasProcessAlreadyExited(process))
+                {
+                    return ProcessCommandResult.Succeeded("CPA 进程在停止过程中已自行退出。", true);
+                }
+            }
+
+            try
+            {
+                await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (InvalidOperationException) when (HasProcessAlreadyExited(process))
+            {
+            }
+            catch (ObjectDisposedException) when (HasProcessAlreadyExited(process))
+            {
+            }
+
             return ProcessCommandResult.Succeeded("CPA 已停止。");
+        }
+        catch (InvalidOperationException) when (HasProcessAlreadyExited(process))
+        {
+            return ProcessCommandResult.Succeeded("CPA 进程在停止过程中已自行退出。", true);
+        }
+        catch (ObjectDisposedException) when (HasProcessAlreadyExited(process))
+        {
+            return ProcessCommandResult.Succeeded("CPA 进程在停止过程中已自行退出。", true);
+        }
+        catch (Win32Exception) when (HasProcessAlreadyExited(process))
+        {
+            return ProcessCommandResult.Succeeded("CPA 进程在停止过程中已自行退出。", true);
         }
         catch (Exception ex)
         {
+            if (HasProcessAlreadyExited(process))
+            {
+                return ProcessCommandResult.Succeeded("CPA 进程在停止过程中已退出。", true);
+            }
+
             return ProcessCommandResult.Failed($"停止 CPA 失败：{ex.Message}");
+        }
+        finally
+        {
+            ReleaseStoppingProcess(process);
         }
     }
 
@@ -132,6 +190,7 @@ public sealed class CpaProcessManager : IDisposable
         {
             managedProcess?.Dispose();
             managedProcess = null;
+            stoppingProcess = null;
         }
     }
 
@@ -175,6 +234,7 @@ public sealed class CpaProcessManager : IDisposable
     private void HandleProcessExited(Process process)
     {
         var exitCode = process.ExitCode;
+        var shouldDisposeImmediately = false;
 
         lock (syncRoot)
         {
@@ -182,11 +242,94 @@ public sealed class CpaProcessManager : IDisposable
             {
                 managedProcess = null;
             }
+
+            shouldDisposeImmediately = !ReferenceEquals(stoppingProcess, process);
         }
 
         HandleOutput("launcher", $"CPA 进程已退出，ExitCode={exitCode}");
         ProcessExited?.Invoke(this, exitCode);
-        process.Dispose();
+
+        if (shouldDisposeImmediately)
+        {
+            SafeDisposeProcess(process);
+        }
+    }
+
+    private void ReleaseStoppingProcess(Process? process)
+    {
+        if (process is null)
+        {
+            return;
+        }
+
+        var shouldDispose = HasProcessAlreadyExited(process);
+        lock (syncRoot)
+        {
+            if (ReferenceEquals(stoppingProcess, process))
+            {
+                stoppingProcess = null;
+            }
+
+            if (shouldDispose && ReferenceEquals(managedProcess, process))
+            {
+                managedProcess = null;
+            }
+        }
+
+        if (shouldDispose)
+        {
+            SafeDisposeProcess(process);
+        }
+    }
+
+    private static bool HasProcessAlreadyExited(Process process)
+    {
+        try
+        {
+            return process.HasExited;
+        }
+        catch (ObjectDisposedException)
+        {
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return true;
+        }
+        catch (Win32Exception)
+        {
+            return true;
+        }
+    }
+
+    private static int? TryGetProcessId(Process process)
+    {
+        try
+        {
+            return process.Id;
+        }
+        catch (ObjectDisposedException)
+        {
+            return null;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    private static void SafeDisposeProcess(Process process)
+    {
+        try
+        {
+            process.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
     }
 }
 

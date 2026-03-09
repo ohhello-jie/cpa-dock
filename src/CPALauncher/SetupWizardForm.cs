@@ -166,11 +166,11 @@ public sealed class SetupWizardForm : Form
 			Size = new Size(126, 32),
 			Margin = new Padding(0)
 		};
-		txtExecutablePath.ReadOnly = true;
+		txtExecutablePath.ReadOnly = false;
 		txtExecutablePath.Dock = DockStyle.Fill;
 		txtExecutablePath.Font = new Font("Segoe UI", 10f);
 		txtExecutablePath.Margin = new Padding(0, 6, 10, 6);
-		txtConfigPath.ReadOnly = true;
+		txtConfigPath.ReadOnly = false;
 		txtConfigPath.Dock = DockStyle.Fill;
 		txtConfigPath.Font = new Font("Segoe UI", 10f);
 		txtConfigPath.Margin = new Padding(0, 6, 10, 6);
@@ -370,12 +370,32 @@ public sealed class SetupWizardForm : Form
 			}
 			return;
 		}
-		string directoryName = Path.GetDirectoryName(executablePath);
+		if (!TryNormalizePathOrNull(executablePath, out string? normalizedExecutablePath) || string.IsNullOrWhiteSpace(normalizedExecutablePath))
+		{
+			if (showMessage)
+			{
+				MessageBox.Show(this, "当前 exe 路径格式无效，请重新确认。", "exe 路径无效", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+			}
+			return;
+		}
+		string? directoryName = TryGetDirectoryName(normalizedExecutablePath);
 		if (string.IsNullOrWhiteSpace(directoryName))
 		{
 			return;
 		}
-		string text = Path.Combine(directoryName, "config.yaml");
+		string text;
+		try
+		{
+			text = Path.Combine(directoryName, "config.yaml");
+		}
+		catch
+		{
+			if (showMessage)
+			{
+				MessageBox.Show(this, "无法从 exe 路径推导 config.yaml。", "识别失败", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+			}
+			return;
+		}
 		if (File.Exists(text))
 		{
 			txtConfigPath.Text = text;
@@ -392,8 +412,16 @@ public sealed class SetupWizardForm : Form
 
 	private void SaveAndClose()
 	{
-		string text = NormalizePathOrNull(txtExecutablePath.Text);
-		string text2 = NormalizePathOrNull(txtConfigPath.Text);
+		if (!TryNormalizePathOrNull(txtExecutablePath.Text, out string? text))
+		{
+			MessageBox.Show(this, "exe 路径格式无效，请重新确认。", "exe 无效", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+			return;
+		}
+		if (!TryNormalizePathOrNull(txtConfigPath.Text, out string? text2))
+		{
+			MessageBox.Show(this, "config.yaml 路径格式无效，请重新确认。", "配置无效", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+			return;
+		}
 		if (!HasExistingFile(text))
 		{
 			MessageBox.Show(this, "请选择有效的 cli-proxy-api.exe。", "exe 无效", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
@@ -433,16 +461,53 @@ public sealed class SetupWizardForm : Form
 
 	private static string? NormalizePathOrNull(string? path)
 	{
-		return string.IsNullOrWhiteSpace(path) ? null : Path.GetFullPath(path.Trim());
+		return TryNormalizePathOrNull(path, out string? normalizedPath) ? normalizedPath : null;
 	}
 
-	private static void OpenWithShell(string target)
+	private static bool TryNormalizePathOrNull(string? path, out string? normalizedPath)
 	{
-		Process.Start(new ProcessStartInfo
+		normalizedPath = null;
+		if (string.IsNullOrWhiteSpace(path))
 		{
-			FileName = target,
-			UseShellExecute = true
-		});
+			return true;
+		}
+		try
+		{
+			normalizedPath = Path.GetFullPath(path.Trim());
+			return true;
+		}
+		catch
+		{
+			return false;
+		}
+	}
+
+	private void OpenWithShell(string target)
+	{
+		try
+		{
+			Process.Start(new ProcessStartInfo
+			{
+				FileName = target,
+				UseShellExecute = true
+			});
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show(this, "打开链接失败：" + ex.Message, "打开失败", MessageBoxButtons.OK, MessageBoxIcon.Hand);
+		}
+	}
+
+	private static string? TryGetDirectoryName(string path)
+	{
+		try
+		{
+			return Path.GetDirectoryName(path);
+		}
+		catch
+		{
+			return null;
+		}
 	}
 
 	private static GroupBox CreateGroupBox(string text)

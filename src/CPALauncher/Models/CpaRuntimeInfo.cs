@@ -34,5 +34,5 @@ public sealed class CpaRuntimeInfo
 
     public required string ManagementUrl { get; init; }
 
-    public required string ProbeUrl { get; init; }
+    public required string ServiceProbeUrl { get; init; }
 }

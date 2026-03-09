@@ -109,7 +109,11 @@ public sealed class MainForm : Form
 
 	private readonly ToolStripMenuItem trayExitMenuItem;
 
+	private readonly object refreshSyncRoot = new object();
+
 	private LauncherSettings settings = new LauncherSettings();
+
+	private LauncherSettings persistedSettings = new LauncherSettings();
 
 	private CpaRuntimeInfo? runtimeInfo;
 
@@ -119,17 +123,27 @@ public sealed class MainForm : Form
 
 	private bool suppressSettingSaves;
 
-	private bool isRefreshing;
+	private bool isRefreshQueued;
+
+	private bool refreshNeedsRuntimeRecalculation;
+
+	private Task refreshLoopTask = Task.CompletedTask;
 
 	private bool isExiting;
+
+	private bool isAsyncExitInProgress;
 
 	private bool initialPromptShown;
 
 	private bool pendingOpenManagementAfterStart;
 
-	private bool trayHintShown;
+	private bool bypassMinimizeToTrayOnClose;
 
 	private bool isHidingToTray;
+
+	private string committedExecutableText = string.Empty;
+
+	private string committedConfigText = string.Empty;
 
 	private readonly bool startMinimizedToTray;
 
@@ -598,7 +612,7 @@ public sealed class MainForm : Form
 		base.FormClosing += MainForm_FormClosing;
 		refreshTimer.Tick += async delegate
 		{
-			await RefreshUiAsync(recalculateRuntime: false);
+			await RequestRefreshAsync(recalculateRuntime: false);
 		};
 		btnStart.Click += async delegate
 		{
@@ -618,19 +632,45 @@ public sealed class MainForm : Form
 		};
 		btnRefresh.Click += async delegate
 		{
-			await RefreshUiAsync(recalculateRuntime: true);
+			await RequestRefreshAsync(recalculateRuntime: true);
 		};
 		btnConfigureWizard.Click += async delegate
 		{
 			await OpenSetupWizardAsync(firstRun: false);
 		};
-		btnBrowseExecutable.Click += delegate
+		btnBrowseExecutable.Click += async delegate
 		{
-			BrowseExecutable();
+			await BrowseExecutableAsync();
 		};
-		btnBrowseConfig.Click += delegate
+		btnBrowseConfig.Click += async delegate
 		{
-			BrowseConfig();
+			await BrowseConfigAsync();
+		};
+		txtExecutablePath.Leave += async delegate
+		{
+			await CommitExecutablePathAsync();
+		};
+		txtConfigPath.Leave += async delegate
+		{
+			await CommitConfigPathAsync();
+		};
+		txtExecutablePath.KeyDown += async delegate(object? _, KeyEventArgs e)
+		{
+			if (e.KeyCode == Keys.Enter)
+			{
+				e.Handled = true;
+				e.SuppressKeyPress = true;
+				await CommitExecutablePathAsync();
+			}
+		};
+		txtConfigPath.KeyDown += async delegate(object? _, KeyEventArgs e)
+		{
+			if (e.KeyCode == Keys.Enter)
+			{
+				e.Handled = true;
+				e.SuppressKeyPress = true;
+				await CommitConfigPathAsync();
+			}
 		};
 		btnOpenExecutableDir.Click += delegate
 		{
@@ -705,18 +745,19 @@ public sealed class MainForm : Form
 		};
 		processManager.ProcessExited += delegate(object? _, int exitCode)
 		{
-			if (currentStatus != LauncherStatus.Stopping)
-			{
-				currentStatus = LauncherStatus.StartFailed;
-				lastFailureMessage = $"CPA 进程已退出，退出码 {exitCode}。请查看下方诊断输出。";
-			}
-			else
-			{
-				currentStatus = LauncherStatus.Stopped;
-			}
 			SafeUi(delegate
 			{
-				_ = RefreshUiAsync(recalculateRuntime: false);
+				if (currentStatus != LauncherStatus.Stopping)
+				{
+					currentStatus = LauncherStatus.StartFailed;
+					lastFailureMessage = $"CPA 进程已退出，退出码 {exitCode}。请查看下方诊断输出。";
+				}
+				else
+				{
+					currentStatus = LauncherStatus.Stopped;
+					lastFailureMessage = null;
+				}
+				_ = RequestRefreshAsync(recalculateRuntime: false);
 			});
 		};
 	}
@@ -734,9 +775,9 @@ public sealed class MainForm : Form
 			AppendLauncherLog("读取启动器设置失败：" + ex2.Message);
 		}
 		settings.LaunchLauncherOnWindowsStartup = startupManager.IsEnabled();
+		persistedSettings = CloneSettings(settings);
 		ApplySettingsToUi();
-		RecalculateRuntimeInfo();
-		await RefreshUiAsync(recalculateRuntime: false);
+		await RequestRefreshAsync(recalculateRuntime: true);
 		refreshTimer.Start();
 	}
 
@@ -746,6 +787,10 @@ public sealed class MainForm : Form
 		{
 			initialPromptShown = true;
 			await OpenSetupWizardAsync(firstRun: true);
+		}
+		if (startMinimizedToTray && IsConfigurationReady())
+		{
+			HideToTray();
 		}
 		if (settings.AutoStartService && IsConfigurationReady())
 		{
@@ -761,15 +806,11 @@ public sealed class MainForm : Form
 			}
 			await StartServiceAsync();
 		}
-		if (startMinimizedToTray && IsConfigurationReady())
-		{
-			HideToTray();
-		}
 	}
 
 	private void MainForm_Resize(object? sender, EventArgs e)
 	{
-		if (!isHidingToTray && base.WindowState == FormWindowState.Minimized)
+		if (!isHidingToTray && !isExiting && !isAsyncExitInProgress && base.WindowState == FormWindowState.Minimized)
 		{
 			HideToTray();
 		}
@@ -777,7 +818,17 @@ public sealed class MainForm : Form
 
 	private void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
 	{
-		if (!isExiting && e.CloseReason == CloseReason.UserClosing && chkMinimizeToTray.Checked)
+		if (isAsyncExitInProgress)
+		{
+			e.Cancel = true;
+			return;
+		}
+		if (isExiting)
+		{
+			PrepareForApplicationExit();
+			return;
+		}
+		if (e.CloseReason == CloseReason.UserClosing && chkMinimizeToTray.Checked && !bypassMinimizeToTrayOnClose)
 		{
 			e.Cancel = true;
 			BeginInvoke((Action)delegate
@@ -786,24 +837,29 @@ public sealed class MainForm : Form
 			});
 			return;
 		}
-		if (processManager.IsManagedProcessRunning)
+		if (e.CloseReason != CloseReason.UserClosing)
 		{
-			switch (MessageBox.Show(this, "当前 CPA 仍由启动器托管。\n\n选择“是”会先停止服务再退出；选择“否”会保留服务继续运行，仅退出启动器；选择“取消”则返回。", "退出前确认", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question))
-			{
-			case DialogResult.Cancel:
-				e.Cancel = true;
-				isExiting = false;
-				return;
-			case DialogResult.Yes:
-			{
-				ProcessCommandResult result = processManager.StopAsync().GetAwaiter().GetResult();
-				AppendLauncherLog(result.Message);
-				break;
-			}
-			}
+			PrepareForApplicationExit();
+			return;
 		}
-		refreshTimer.Stop();
-		trayIcon.Visible = false;
+		if (!processManager.IsManagedProcessRunning)
+		{
+			PrepareForApplicationExit();
+			return;
+		}
+		switch (MessageBox.Show(this, "当前 CPA 仍由启动器托管。\n\n选择“是”会先停止服务再退出；选择“否”会保留服务继续运行，仅退出启动器；选择“取消”则返回。", "退出前确认", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question))
+		{
+		case DialogResult.Cancel:
+			e.Cancel = true;
+			return;
+		case DialogResult.Yes:
+			e.Cancel = true;
+			_ = StopManagedProcessAndExitAsync();
+			return;
+		default:
+			PrepareForApplicationExit();
+			return;
+		}
 	}
 
 	private async Task StartServiceAsync()
@@ -823,12 +879,12 @@ public sealed class MainForm : Form
 		if (processManager.IsManagedProcessRunning)
 		{
 			AppendLauncherLog("CPA 已经由当前启动器托管，无需重复启动。");
-			await RefreshUiAsync(recalculateRuntime: false);
+			await RequestRefreshAsync(recalculateRuntime: false);
 			return;
 		}
-		if (await ProbeServiceAsync(runtimeInfo.ProbeUrl))
+		if (await ProbeServiceAsync(runtimeInfo.ServiceProbeUrl))
 		{
-			DialogResult confirm = MessageBox.Show(this, "检测到当前管理页地址已经有响应。\n\n这通常表示端口上已经跑着一个 CPA 实例。继续启动可能会因为端口占用而失败。\n\n是否仍然继续？", "检测到已有服务", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
+			DialogResult confirm = MessageBox.Show(this, "检测到当前服务地址已经有响应。\n\n这通常表示端口上已经跑着一个 CPA 实例。继续启动可能会因为端口占用而失败。\n\n是否仍然继续？", "检测到已有服务", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
 			if (confirm != DialogResult.Yes)
 			{
 				return;
@@ -846,14 +902,14 @@ public sealed class MainForm : Form
 			currentStatus = LauncherStatus.StartFailed;
 			lastFailureMessage = result.Message;
 			pendingOpenManagementAfterStart = false;
-			await RefreshUiAsync(recalculateRuntime: false);
+			await RequestRefreshAsync(recalculateRuntime: false);
 			return;
 		}
-		if (await WaitForServiceStateAsync(runtimeInfo.ProbeUrl, expectedState: true, TimeSpan.FromSeconds(10.0)))
+		if (await WaitForServiceStateAsync(runtimeInfo.ServiceProbeUrl, expectedState: true, TimeSpan.FromSeconds(10.0)))
 		{
 			currentStatus = LauncherStatus.Running;
 			lastFailureMessage = null;
-			AppendLauncherLog("已检测到管理页地址响应，CPA 启动完成。");
+			AppendLauncherLog("已检测到服务地址响应，CPA 启动完成。");
 		}
 		else if (!processManager.IsManagedProcessRunning)
 		{
@@ -866,21 +922,16 @@ public sealed class MainForm : Form
 		else
 		{
 			currentStatus = LauncherStatus.Starting;
-			AppendLauncherLog("CPA 进程已拉起，但管理页暂时还未响应。你可以稍后再点“重新检测”。");
+			AppendLauncherLog("CPA 进程已拉起，但服务暂时还未响应。你可以稍后再点“重新检测”。");
 		}
-		await RefreshUiAsync(recalculateRuntime: false);
+		await RequestRefreshAsync(recalculateRuntime: false);
 	}
 
 	private async Task StopServiceAsync()
 	{
 		if (!processManager.IsManagedProcessRunning)
 		{
-			bool flag = runtimeInfo != null;
-			bool flag2 = flag;
-			if (flag2)
-			{
-				flag2 = await ProbeServiceAsync(runtimeInfo.ProbeUrl);
-			}
+			bool flag2 = runtimeInfo != null && await ProbeServiceAsync(runtimeInfo.ServiceProbeUrl);
 			if (flag2)
 			{
 				MessageBox.Show(this, "当前端口上确实有 CPA 响应，但不是当前启动器托管起来的进程。\n\n为了避免误杀别的实例，启动器不会直接停止它。", "无法停止外部实例", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
@@ -889,7 +940,7 @@ public sealed class MainForm : Form
 			{
 				AppendLauncherLog("当前没有可停止的托管进程。");
 			}
-			await RefreshUiAsync(recalculateRuntime: false);
+			await RequestRefreshAsync(recalculateRuntime: false);
 			return;
 		}
 		currentStatus = LauncherStatus.Stopping;
@@ -900,17 +951,17 @@ public sealed class MainForm : Form
 		{
 			currentStatus = LauncherStatus.StartFailed;
 			lastFailureMessage = result.Message;
-			await RefreshUiAsync(recalculateRuntime: false);
+			await RequestRefreshAsync(recalculateRuntime: false);
 			return;
 		}
 		if (runtimeInfo != null)
 		{
-			await WaitForServiceStateAsync(runtimeInfo.ProbeUrl, expectedState: false, TimeSpan.FromSeconds(5.0));
+			await WaitForServiceStateAsync(runtimeInfo.ServiceProbeUrl, expectedState: false, TimeSpan.FromSeconds(5.0));
 		}
 		currentStatus = LauncherStatus.Stopped;
 		lastFailureMessage = null;
 		pendingOpenManagementAfterStart = false;
-		await RefreshUiAsync(recalculateRuntime: false);
+		await RequestRefreshAsync(recalculateRuntime: false);
 	}
 
 	private async Task OpenSetupWizardAsync(bool firstRun)
@@ -927,13 +978,16 @@ public sealed class MainForm : Form
 		}
 		settings = wizard.ResultSettings;
 		ApplySettingsToUi();
-		SaveSettings();
-		RecalculateRuntimeInfo();
+		if (!SaveSettings())
+		{
+			await RequestRefreshAsync(recalculateRuntime: true);
+			return;
+		}
 		AppendLauncherLog(firstRun ? "首次配置已完成。" : "已更新启动器配置。");
-		await RefreshUiAsync(recalculateRuntime: true);
+		await RequestRefreshAsync(recalculateRuntime: true);
 	}
 
-	private void BrowseExecutable()
+	private async Task BrowseExecutableAsync()
 	{
 		using OpenFileDialog openFileDialog = new OpenFileDialog
 		{
@@ -945,15 +999,11 @@ public sealed class MainForm : Form
 		if (openFileDialog.ShowDialog(this) == DialogResult.OK)
 		{
 			txtExecutablePath.Text = openFileDialog.FileName;
-			AutoDiscoverConfigForExecutable(openFileDialog.FileName);
-			UpdateSettingsFromUi();
-			SaveSettings();
-			RecalculateRuntimeInfo();
-			RefreshUiAsync(recalculateRuntime: false);
+			await CommitExecutablePathAsync(force: true);
 		}
 	}
 
-	private void BrowseConfig()
+	private async Task BrowseConfigAsync()
 	{
 		using OpenFileDialog openFileDialog = new OpenFileDialog
 		{
@@ -965,37 +1015,54 @@ public sealed class MainForm : Form
 		if (openFileDialog.ShowDialog(this) == DialogResult.OK)
 		{
 			txtConfigPath.Text = openFileDialog.FileName;
-			UpdateSettingsFromUi();
-			SaveSettings();
-			RecalculateRuntimeInfo();
-			RefreshUiAsync(recalculateRuntime: false);
+			await CommitConfigPathAsync(force: true);
 		}
 	}
 
 	private void AutoDiscoverConfigForExecutable(string executablePath)
 	{
-		string directoryName = Path.GetDirectoryName(executablePath);
-		if (!string.IsNullOrWhiteSpace(directoryName))
+		string? directoryName = TryGetDirectoryName(executablePath);
+		if (string.IsNullOrWhiteSpace(directoryName))
 		{
-			string text = Path.Combine(directoryName, "config.yaml");
-			if (!File.Exists(text))
+			return;
+		}
+		bool canReplaceCurrentConfig = !HasExistingFile(NormalizePathOrNull(txtConfigPath.Text));
+		string text;
+		try
+		{
+			text = Path.Combine(directoryName, "config.yaml");
+		}
+		catch
+		{
+			return;
+		}
+		if (!File.Exists(text))
+		{
+			if (canReplaceCurrentConfig)
 			{
 				AppendLauncherLog("已选择 exe，但同目录下没有发现 config.yaml，请手动指定配置文件。");
-				return;
 			}
-			txtConfigPath.Text = text;
-			AppendLauncherLog("已自动识别同目录配置文件：" + text);
+			return;
 		}
+		if (!canReplaceCurrentConfig)
+		{
+			return;
+		}
+		txtConfigPath.Text = text;
+		AppendLauncherLog("已自动识别同目录配置文件：" + text);
 	}
 
-	private void OpenManagementPage()
+	private void OpenManagementPage(bool showErrors = true, bool confirmControlPanelDisabled = true)
 	{
 		if (runtimeInfo == null)
 		{
-			MessageBox.Show(this, "当前还没有可用的管理页地址，请先配置 exe 与 config。", "无法打开管理页", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+			if (showErrors)
+			{
+				MessageBox.Show(this, "当前还没有可用的管理页地址，请先配置 exe 与 config。", "无法打开管理页", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+			}
 			return;
 		}
-		if (runtimeInfo.ControlPanelDisabled)
+		if (runtimeInfo.ControlPanelDisabled && confirmControlPanelDisabled && showErrors)
 		{
 			DialogResult dialogResult = MessageBox.Show(this, "当前配置显示 remote-management.disable-control-panel = true。\n\n继续打开管理页时，浏览器里可能会看到 404。是否继续？", "控制面板可能已禁用", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
 			if (dialogResult != DialogResult.Yes)
@@ -1003,7 +1070,7 @@ public sealed class MainForm : Form
 				return;
 			}
 		}
-		OpenWithShell(runtimeInfo.ManagementUrl);
+		TryOpenWithShell(runtimeInfo.ManagementUrl, showErrors, "打开管理页", "无法打开管理页");
 	}
 
 	private void OpenLogDirectory()
@@ -1021,7 +1088,7 @@ public sealed class MainForm : Form
 				return;
 			}
 		}
-		OpenDirectory(runtimeInfo.LogDirectory);
+		OpenDirectory(runtimeInfo.LogDirectory, showErrors: true, actionName: "打开日志目录", errorTitle: "无法打开日志目录");
 	}
 
 	private void OpenExecutableDirectory()
@@ -1032,7 +1099,7 @@ public sealed class MainForm : Form
 		}
 		else
 		{
-			OpenPathInExplorer(txtExecutablePath.Text, selectFile: true);
+			OpenPathInExplorer(txtExecutablePath.Text, selectFile: true, showErrors: true, actionName: "打开 exe 所在位置", errorTitle: "无法打开目录");
 		}
 	}
 
@@ -1044,7 +1111,7 @@ public sealed class MainForm : Form
 		}
 		else
 		{
-			OpenPathInExplorer(txtConfigPath.Text, selectFile: true);
+			OpenPathInExplorer(txtConfigPath.Text, selectFile: true, showErrors: true, actionName: "打开配置所在位置", errorTitle: "无法打开目录");
 		}
 	}
 
@@ -1056,8 +1123,15 @@ public sealed class MainForm : Form
 			MessageBox.Show(this, "当前没有可复制的诊断内容。", "没有可复制内容", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
 			return;
 		}
-		Clipboard.SetText(text);
-		AppendLauncherLog("已将诊断输出复制到剪贴板。");
+		try
+		{
+			Clipboard.SetText(text);
+			AppendLauncherLog("已将诊断输出复制到剪贴板。");
+		}
+		catch (Exception ex)
+		{
+			ReportActionFailure("复制诊断输出", ex.Message, showErrors: true, errorTitle: "复制失败");
+		}
 	}
 
 	private void ExportDiagnosticsToFile()
@@ -1071,8 +1145,15 @@ public sealed class MainForm : Form
 		};
 		if (saveFileDialog.ShowDialog(this) == DialogResult.OK)
 		{
-			File.WriteAllText(saveFileDialog.FileName, BuildDiagnosticsExportText());
-			AppendLauncherLog("已导出诊断输出：" + saveFileDialog.FileName);
+			try
+			{
+				File.WriteAllText(saveFileDialog.FileName, BuildDiagnosticsExportText());
+				AppendLauncherLog("已导出诊断输出：" + saveFileDialog.FileName);
+			}
+			catch (Exception ex)
+			{
+				ReportActionFailure("导出诊断输出", ex.Message, showErrors: true, errorTitle: "导出失败");
+			}
 		}
 	}
 
@@ -1094,7 +1175,7 @@ public sealed class MainForm : Form
 		if (runtimeInfo != null)
 		{
 			list.Add("ManagementUrl: " + runtimeInfo.ManagementUrl);
-			list.Add("ProbeUrl: " + runtimeInfo.ProbeUrl);
+			list.Add("ServiceProbeUrl: " + runtimeInfo.ServiceProbeUrl);
 			list.Add("LogDirectory: " + runtimeInfo.LogDirectory);
 			list.Add("AuthDirectory: " + (runtimeInfo.AuthDirectory ?? string.Empty));
 		}
@@ -1120,31 +1201,63 @@ public sealed class MainForm : Form
 		}
 	}
 
-	private async Task RefreshUiAsync(bool recalculateRuntime)
+	private Task RequestRefreshAsync(bool recalculateRuntime)
 	{
-		if (isRefreshing)
+		lock (refreshSyncRoot)
 		{
-			return;
-		}
-		isRefreshing = true;
-		try
-		{
-			if (recalculateRuntime)
+			isRefreshQueued = true;
+			refreshNeedsRuntimeRecalculation |= recalculateRuntime;
+			if (refreshLoopTask.IsCompleted)
 			{
-				RecalculateRuntimeInfo();
+				refreshLoopTask = ProcessRefreshQueueAsync();
 			}
-			UpdateInferredInfo();
-			bool serviceReachable = await ProbeRuntimeAsync();
-			UpdateStatusVisual(serviceReachable);
-			if (pendingOpenManagementAfterStart && serviceReachable && runtimeInfo != null)
+			return refreshLoopTask;
+		}
+	}
+
+	private async Task ProcessRefreshQueueAsync()
+	{
+		while (true)
+		{
+			bool recalculateRuntime;
+			lock (refreshSyncRoot)
 			{
-				pendingOpenManagementAfterStart = false;
-				OpenWithShell(runtimeInfo.ManagementUrl);
+				if (!isRefreshQueued)
+				{
+					refreshNeedsRuntimeRecalculation = false;
+					return;
+				}
+				isRefreshQueued = false;
+				recalculateRuntime = refreshNeedsRuntimeRecalculation;
+				refreshNeedsRuntimeRecalculation = false;
+			}
+			try
+			{
+				await RefreshUiCoreAsync(recalculateRuntime);
+			}
+			catch (Exception ex)
+			{
+				SafeUi(delegate
+				{
+					AppendLauncherLog("刷新界面失败：" + ex.Message);
+				});
 			}
 		}
-		finally
+	}
+
+	private async Task RefreshUiCoreAsync(bool recalculateRuntime)
+	{
+		if (recalculateRuntime)
 		{
-			isRefreshing = false;
+			RecalculateRuntimeInfo();
+		}
+		UpdateInferredInfo();
+		bool serviceReachable = await ProbeRuntimeAsync();
+		UpdateStatusVisual(serviceReachable);
+		if (pendingOpenManagementAfterStart && serviceReachable && runtimeInfo != null)
+		{
+			pendingOpenManagementAfterStart = false;
+			OpenManagementPage(showErrors: false, confirmControlPanelDisabled: false);
 		}
 	}
 
@@ -1163,12 +1276,12 @@ public sealed class MainForm : Form
 			}
 			else
 			{
-				SetStatusVisual(LauncherStatus.Starting, "启动中", "进程已拉起，正在等待管理页响应。", Color.FromArgb(255, 242, 204), Color.FromArgb(120, 79, 0));
+				SetStatusVisual(LauncherStatus.Starting, "启动中", "进程已拉起，正在等待服务响应。", Color.FromArgb(255, 242, 204), Color.FromArgb(120, 79, 0));
 			}
 		}
 		else if (serviceReachable)
 		{
-			SetStatusVisual(LauncherStatus.Running, "外部运行", "检测到目标地址已有 CPA 响应，但不是当前启动器托管的进程。", Color.FromArgb(222, 236, 255), Color.FromArgb(0, 74, 173));
+			SetStatusVisual(LauncherStatus.Running, "外部运行", "检测到目标服务已有 CPA 响应，但不是当前启动器托管的进程。", Color.FromArgb(222, 236, 255), Color.FromArgb(0, 74, 173));
 		}
 		else if (currentStatus == LauncherStatus.StartFailed && !string.IsNullOrWhiteSpace(lastFailureMessage))
 		{
@@ -1202,7 +1315,7 @@ public sealed class MainForm : Form
 		lblStatusBadge.ForeColor = foregroundColor;
 		lblStatusDetail.Text = detail;
 		lblStatusDetail.ForeColor = foregroundColor;
-		trayIcon.Text = "CPA Launcher - " + badgeText;
+		SetTrayIconText("CPA Launcher - " + badgeText);
 	}
 
 	private void UpdateInferredInfo()
@@ -1218,7 +1331,7 @@ public sealed class MainForm : Form
 		else
 		{
 			txtManagementUrl.Text = runtimeInfo.ManagementUrl;
-			txtProbeUrl.Text = runtimeInfo.ProbeUrl;
+			txtProbeUrl.Text = runtimeInfo.ServiceProbeUrl;
 			txtConfigDirectory.Text = runtimeInfo.ConfigDirectory;
 			txtLogDirectory.Text = (runtimeInfo.LoggingToFile ? runtimeInfo.LogDirectory : (runtimeInfo.LogDirectory + "（当前 logging-to-file = false）"));
 			txtAuthDirectory.Text = (string.IsNullOrWhiteSpace(runtimeInfo.AuthDirectory) ? "未配置 auth-dir" : runtimeInfo.AuthDirectory);
@@ -1235,7 +1348,9 @@ public sealed class MainForm : Form
 		}
 		try
 		{
-			runtimeInfo = configInspector.Inspect(settings.ExecutablePath, settings.ConfigPath);
+			string executablePath = settings.ExecutablePath!;
+			string configPath = settings.ConfigPath!;
+			runtimeInfo = configInspector.Inspect(executablePath, configPath);
 		}
 		catch (Exception ex)
 		{
@@ -1247,13 +1362,7 @@ public sealed class MainForm : Form
 
 	private async Task<bool> ProbeRuntimeAsync()
 	{
-		bool flag = runtimeInfo != null;
-		bool flag2 = flag;
-		if (flag2)
-		{
-			flag2 = await ProbeServiceAsync(runtimeInfo.ProbeUrl);
-		}
-		return flag2;
+		return runtimeInfo != null && await ProbeServiceAsync(runtimeInfo.ServiceProbeUrl);
 	}
 
 	private async Task<bool> ProbeServiceAsync(string probeUrl)
@@ -1314,6 +1423,8 @@ public sealed class MainForm : Form
 		{
 			txtExecutablePath.Text = settings.ExecutablePath ?? string.Empty;
 			txtConfigPath.Text = settings.ConfigPath ?? string.Empty;
+			committedExecutableText = txtExecutablePath.Text.Trim();
+			committedConfigText = txtConfigPath.Text.Trim();
 			chkMinimizeToTray.Checked = settings.MinimizeToTrayOnClose;
 			chkAutoStartService.Checked = settings.AutoStartService;
 			chkLaunchLauncherOnWindowsStartup.Checked = settings.LaunchLauncherOnWindowsStartup;
@@ -1337,33 +1448,64 @@ public sealed class MainForm : Form
 		settings.OpenManagementPageAfterStart = chkOpenManagementAfterStart.Checked;
 	}
 
-	private void SaveSettings()
+	private bool SaveSettings()
 	{
+		LauncherSettings previousSettings = CloneSettings(persistedSettings);
+		bool previousWindowsStartupEnabled = previousSettings.LaunchLauncherOnWindowsStartup;
 		try
 		{
 			startupManager.SetEnabled(settings.LaunchLauncherOnWindowsStartup);
 			settingsStore.Save(settings);
+			persistedSettings = CloneSettings(settings);
 			UpdateSettingsNote();
+			return true;
 		}
 		catch (Exception ex)
 		{
-			settings.LaunchLauncherOnWindowsStartup = startupManager.IsEnabled();
+			bool rollbackSucceeded = true;
 			try
 			{
-				settingsStore.Save(settings);
+				startupManager.SetEnabled(previousWindowsStartupEnabled);
 			}
-			catch
+			catch (Exception rollbackEx)
 			{
+				rollbackSucceeded = false;
+				AppendLauncherLog("回滚 Windows 开机自启状态失败：" + rollbackEx.Message);
+			}
+			settings = CloneSettings(previousSettings);
+			if (!rollbackSucceeded)
+			{
+				settings.LaunchLauncherOnWindowsStartup = startupManager.IsEnabled();
 			}
 			ApplySettingsToUi();
 			UpdateSettingsNote();
+			AppendLauncherLog("保存启动器设置失败：" + ex.Message);
 			MessageBox.Show(this, "保存启动器设置失败：" + ex.Message, "保存失败", MessageBoxButtons.OK, MessageBoxIcon.Hand);
+			return false;
 		}
 	}
 
 	private static string? NormalizePathOrNull(string? path)
 	{
-		return string.IsNullOrWhiteSpace(path) ? null : Path.GetFullPath(path.Trim());
+		return TryNormalizePathOrNull(path, out string? normalizedPath) ? normalizedPath : null;
+	}
+
+	private static bool TryNormalizePathOrNull(string? path, out string? normalizedPath)
+	{
+		normalizedPath = null;
+		if (string.IsNullOrWhiteSpace(path))
+		{
+			return true;
+		}
+		try
+		{
+			normalizedPath = Path.GetFullPath(path.Trim());
+			return true;
+		}
+		catch
+		{
+			return false;
+		}
 	}
 
 	private void ShowMainWindow()
@@ -1391,11 +1533,6 @@ public sealed class MainForm : Form
 			Hide();
 			base.ShowInTaskbar = false;
 			trayIcon.Visible = true;
-			if (!trayHintShown && !startMinimizedToTray)
-			{
-				trayIcon.ShowBalloonTip(2000, "CPA Launcher", "窗口已最小化到系统托盘，双击托盘图标可恢复。", ToolTipIcon.Info);
-				trayHintShown = true;
-			}
 		}
 		finally
 		{
@@ -1405,44 +1542,72 @@ public sealed class MainForm : Form
 
 	private void ExitLauncher()
 	{
-		isExiting = true;
-		Close();
-	}
-
-	private static void OpenWithShell(string target)
-	{
-		Process.Start(new ProcessStartInfo
+		if (isExiting || isAsyncExitInProgress)
 		{
-			FileName = target,
-			UseShellExecute = true
-		});
-	}
-
-	private static void OpenDirectory(string directoryPath)
-	{
-		if (Directory.Exists(directoryPath))
-		{
-			OpenWithShell(directoryPath);
 			return;
 		}
-		string text = directoryPath;
+		bypassMinimizeToTrayOnClose = true;
+		try
+		{
+			Close();
+		}
+		finally
+		{
+			if (!isExiting && !isAsyncExitInProgress)
+			{
+				bypassMinimizeToTrayOnClose = false;
+			}
+		}
+	}
+
+	private bool TryOpenWithShell(string target, bool showErrors, string actionName, string errorTitle)
+	{
+		try
+		{
+			Process.Start(new ProcessStartInfo
+			{
+				FileName = target,
+				UseShellExecute = true
+			});
+			return true;
+		}
+		catch (Exception ex)
+		{
+			ReportActionFailure(actionName, ex.Message, showErrors, errorTitle);
+			return false;
+		}
+	}
+
+	private void OpenDirectory(string directoryPath, bool showErrors, string actionName, string errorTitle)
+	{
+		if (string.IsNullOrWhiteSpace(directoryPath))
+		{
+			ReportActionFailure(actionName, "找不到可打开的目录。", showErrors, errorTitle);
+			return;
+		}
+		string? text = NormalizePathOrNull(directoryPath);
 		while (!string.IsNullOrWhiteSpace(text) && !Directory.Exists(text))
 		{
-			text = Path.GetDirectoryName(text);
+			text = TryGetDirectoryName(text);
 		}
 		if (!string.IsNullOrWhiteSpace(text) && Directory.Exists(text))
 		{
-			OpenWithShell(text);
+			TryOpenWithShell(text, showErrors, actionName, errorTitle);
 		}
 		else
 		{
-			MessageBox.Show("找不到可打开的目录：" + directoryPath, "打开目录失败", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+			ReportActionFailure(actionName, "找不到可打开的目录：" + directoryPath, showErrors, errorTitle);
 		}
 	}
 
-	private static void OpenPathInExplorer(string path, bool selectFile)
+	private void OpenPathInExplorer(string path, bool selectFile, bool showErrors, string actionName, string errorTitle)
 	{
-		if (selectFile)
+		if (!selectFile)
+		{
+			TryOpenWithShell(path, showErrors, actionName, errorTitle);
+			return;
+		}
+		try
 		{
 			Process.Start(new ProcessStartInfo
 			{
@@ -1451,10 +1616,184 @@ public sealed class MainForm : Form
 				UseShellExecute = true
 			});
 		}
-		else
+		catch (Exception ex)
 		{
-			OpenWithShell(path);
+			ReportActionFailure(actionName, ex.Message, showErrors, errorTitle);
 		}
+	}
+
+	private void ReportActionFailure(string actionName, string detail, bool showErrors, string errorTitle)
+	{
+		string text = actionName + "失败：" + detail;
+		AppendLauncherLog(text);
+		if (showErrors)
+		{
+			MessageBox.Show(this, text, errorTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+		}
+	}
+
+	private async Task CommitExecutablePathAsync(bool force = false)
+	{
+		if (suppressSettingSaves)
+		{
+			return;
+		}
+		string text = txtExecutablePath.Text.Trim();
+		if (!force && string.Equals(text, committedExecutableText, StringComparison.Ordinal))
+		{
+			return;
+		}
+		committedExecutableText = text;
+		if (!TryNormalizePathOrNull(text, out string? normalizedPath))
+		{
+			AppendLauncherLog("exe 路径格式无效，当前将按未配置处理。");
+		}
+		else if (!string.IsNullOrWhiteSpace(normalizedPath))
+		{
+			AutoDiscoverConfigForExecutable(normalizedPath);
+		}
+		committedConfigText = txtConfigPath.Text.Trim();
+		await CommitPathChangesAsync();
+	}
+
+	private async Task CommitConfigPathAsync(bool force = false)
+	{
+		if (suppressSettingSaves)
+		{
+			return;
+		}
+		string text = txtConfigPath.Text.Trim();
+		if (!force && string.Equals(text, committedConfigText, StringComparison.Ordinal))
+		{
+			return;
+		}
+		committedConfigText = text;
+		if (!TryNormalizePathOrNull(text, out _))
+		{
+			AppendLauncherLog("config.yaml 路径格式无效，当前将按未配置处理。");
+		}
+		await CommitPathChangesAsync();
+	}
+
+	private async Task CommitPathChangesAsync()
+	{
+		UpdateSettingsFromUi();
+		SaveSettings();
+		await RequestRefreshAsync(recalculateRuntime: true);
+	}
+
+	private void PrepareForApplicationExit()
+	{
+		bypassMinimizeToTrayOnClose = true;
+		isExiting = true;
+		refreshTimer.Stop();
+		trayIcon.Visible = false;
+	}
+
+	private async Task StopManagedProcessAndExitAsync()
+	{
+		if (isAsyncExitInProgress || isExiting)
+		{
+			return;
+		}
+		isAsyncExitInProgress = true;
+		try
+		{
+			currentStatus = LauncherStatus.Stopping;
+			await RequestRefreshAsync(recalculateRuntime: false);
+			ProcessCommandResult result = await processManager.StopAsync();
+			SafeUi(delegate
+			{
+				AppendLauncherLog(result.Message);
+				if (result.Success)
+				{
+					currentStatus = LauncherStatus.Stopped;
+					lastFailureMessage = null;
+					pendingOpenManagementAfterStart = false;
+				}
+				else
+				{
+					currentStatus = LauncherStatus.StartFailed;
+					lastFailureMessage = result.Message + " 启动器仍将退出，CPA 可能仍在运行。";
+				}
+			});
+			if (result.Success && runtimeInfo != null)
+			{
+				await WaitForServiceStateAsync(runtimeInfo.ServiceProbeUrl, expectedState: false, TimeSpan.FromSeconds(5.0));
+			}
+			await RequestRefreshAsync(recalculateRuntime: false);
+		}
+		catch (Exception ex)
+		{
+			SafeUi(delegate
+			{
+				lastFailureMessage = "退出前停止 CPA 失败：" + ex.Message;
+				currentStatus = LauncherStatus.StartFailed;
+				AppendLauncherLog(lastFailureMessage);
+			});
+		}
+		finally
+		{
+			SafeUi(delegate
+			{
+				isAsyncExitInProgress = false;
+				PrepareForApplicationExit();
+				Close();
+			});
+		}
+	}
+
+	private void SetTrayIconText(string text)
+	{
+		try
+		{
+			trayIcon.Text = BuildTrayIconText(text);
+		}
+		catch (ArgumentOutOfRangeException)
+		{
+			trayIcon.Text = "CPA Launcher";
+		}
+	}
+
+	private static string BuildTrayIconText(string text)
+	{
+		const int num = 63;
+		if (string.IsNullOrWhiteSpace(text))
+		{
+			return "CPA Launcher";
+		}
+		string text2 = text.Trim().Replace(Environment.NewLine, " ");
+		if (text2.Length <= num)
+		{
+			return text2;
+		}
+		return text2.Substring(0, num);
+	}
+
+	private static string? TryGetDirectoryName(string path)
+	{
+		try
+		{
+			return Path.GetDirectoryName(path);
+		}
+		catch
+		{
+			return null;
+		}
+	}
+
+	private static LauncherSettings CloneSettings(LauncherSettings source)
+	{
+		return new LauncherSettings
+		{
+			ExecutablePath = source.ExecutablePath,
+			ConfigPath = source.ConfigPath,
+			MinimizeToTrayOnClose = source.MinimizeToTrayOnClose,
+			AutoStartService = source.AutoStartService,
+			LaunchLauncherOnWindowsStartup = source.LaunchLauncherOnWindowsStartup,
+			AutoStartDelaySeconds = source.AutoStartDelaySeconds,
+			OpenManagementPageAfterStart = source.OpenManagementPageAfterStart
+		};
 	}
 
 	private void AppendLauncherLog(string message)
@@ -1482,16 +1821,33 @@ public sealed class MainForm : Form
 
 	private void SafeUi(Action action)
 	{
-		if (!base.IsDisposed)
+		if (base.IsDisposed || Disposing || !base.IsHandleCreated)
 		{
-			if (base.InvokeRequired)
+			return;
+		}
+		if (base.InvokeRequired)
+		{
+			try
 			{
 				BeginInvoke(action);
 			}
-			else
+			catch (ObjectDisposedException)
 			{
-				action();
 			}
+			catch (InvalidOperationException)
+			{
+			}
+			return;
+		}
+		try
+		{
+			action();
+		}
+		catch (InvalidOperationException) when (base.IsDisposed || Disposing || !base.IsHandleCreated)
+		{
+		}
+		catch (ObjectDisposedException)
+		{
 		}
 	}
 
@@ -1543,7 +1899,7 @@ public sealed class MainForm : Form
 	private static void ConfigureReadOnlyPathTextBox(TextBox textBox)
 	{
 		textBox.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-		textBox.ReadOnly = true;
+		textBox.ReadOnly = false;
 		textBox.Font = new Font("Segoe UI", 10f);
 	}
 

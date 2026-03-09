@@ -70,7 +70,7 @@ public sealed class CpaConfigInspector
             LogDirectory = logDirectory,
             BaseUrl = baseUrl,
             ManagementUrl = $"{baseUrl}/management.html#/login",
-            ProbeUrl = $"{baseUrl}/management.html",
+            ServiceProbeUrl = baseUrl,
         };
     }
 
