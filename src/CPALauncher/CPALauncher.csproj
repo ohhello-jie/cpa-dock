@@ -12,10 +12,10 @@
     <Product>CPA Launcher</Product>
     <Description>用于封装 CLIProxyAPI 本地运行生命周期的 Windows 启动器。</Description>
     <ApplicationIcon>assets\app.ico</ApplicationIcon>
-    <Version>0.1.0</Version>
-    <FileVersion>0.1.0.0</FileVersion>
-    <AssemblyVersion>0.1.0.0</AssemblyVersion>
-    <InformationalVersion>0.1.0-local</InformationalVersion>
+    <Version>0.1.1</Version>
+    <FileVersion>0.1.1.0</FileVersion>
+    <AssemblyVersion>0.1.1.0</AssemblyVersion>
+    <InformationalVersion>0.1.1</InformationalVersion>
   </PropertyGroup>
 
 </Project>
