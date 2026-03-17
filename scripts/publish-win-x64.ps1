@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
-$ProjectFile = Join-Path $ProjectRoot "src\CPALauncher\CPALauncher.csproj"
+$ProjectFile = Join-Path $ProjectRoot "src\CPALauncher.Wpf\CPALauncher.Wpf.csproj"
 $PublishProfile = "SingleFile"
 
 $ModeName = if ($FrameworkDependent) { "framework-dependent" } else { "self-contained" }
