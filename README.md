@@ -66,10 +66,3 @@ CPALauncher/
 │     └─ Views/               # XAML 视图
 └─ README.md
 ```
-
-## 不在当前版本范围
-
-- 内嵌 Web 管理页
-- 可视化 YAML 编辑器
-- 自动下载 GitHub Release
-- 多实例编排
