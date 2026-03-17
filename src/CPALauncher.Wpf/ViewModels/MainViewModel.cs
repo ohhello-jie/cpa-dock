@@ -7,6 +7,8 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using CPALauncher.Models;
 using CPALauncher.Services;
+using HandyControl.Data;
+using MessageBox = HandyControl.Controls.MessageBox;
 
 namespace CPALauncher.ViewModels;
 
@@ -17,6 +19,8 @@ public class MainViewModel : ViewModelBase
     private readonly LauncherSettingsStore _settingsStore = new();
     private readonly WindowsStartupManager _startupManager = new();
     private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(2) };
+    private readonly HttpClient _downloadHttpClient = new() { Timeout = TimeSpan.FromMinutes(10) };
+    private readonly CpaUpdateService _updateService;
     private readonly DispatcherTimer _refreshTimer;
 
     private LauncherStatus _currentStatus = LauncherStatus.Unconfigured;
@@ -43,6 +47,11 @@ public class MainViewModel : ViewModelBase
     private bool _openManagementPageAfterStart = true;
     private int _autoStartDelaySeconds;
     private bool _isDarkMode;
+    private bool _checkForUpdatesOnStartup = true;
+
+    private string _updateStatusText = "";
+    private int _updateProgress;
+    private bool _isUpdateInProgress;
 
     public ObservableCollection<string> DiagnosticLines { get; } = new();
 
@@ -216,13 +225,55 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    public bool CheckForUpdatesOnStartup
+    {
+        get => _checkForUpdatesOnStartup;
+        set
+        {
+            if (SetProperty(ref _checkForUpdatesOnStartup, value))
+            {
+                _settings.CheckForUpdatesOnStartup = value;
+                SaveSettings();
+            }
+        }
+    }
+
+    // Update Properties
+    public string UpdateStatusText
+    {
+        get => _updateStatusText;
+        set
+        {
+            if (SetProperty(ref _updateStatusText, value))
+                OnPropertyChanged(nameof(UpdateStatusVisibility));
+        }
+    }
+
+    public int UpdateProgress
+    {
+        get => _updateProgress;
+        set => SetProperty(ref _updateProgress, value);
+    }
+
+    public bool IsUpdateInProgress
+    {
+        get => _isUpdateInProgress;
+        set => SetProperty(ref _isUpdateInProgress, value);
+    }
+
+    public Visibility UpdateProgressVisibility =>
+        _isUpdateInProgress ? Visibility.Visible : Visibility.Collapsed;
+
+    public Visibility UpdateStatusVisibility =>
+        string.IsNullOrEmpty(_updateStatusText) ? Visibility.Collapsed : Visibility.Visible;
+
     // Commands
     public ICommand StartCommand { get; }
     public ICommand StopCommand { get; }
     public ICommand RefreshCommand { get; }
     public ICommand OpenManagementCommand { get; }
     public ICommand OpenLogsCommand { get; }
-    public ICommand ConfigureCommand { get; }
+    public ICommand CheckForUpdateCommand { get; }
     public ICommand BrowseExecutableCommand { get; }
     public ICommand BrowseConfigCommand { get; }
     public ICommand OpenExecutableDirCommand { get; }
@@ -235,13 +286,15 @@ public class MainViewModel : ViewModelBase
 
     public MainViewModel()
     {
+        _updateService = new CpaUpdateService(_downloadHttpClient);
+
         // Initialize commands
         StartCommand = new RelayCommand(StartServiceAsync, () => CanStart());
         StopCommand = new RelayCommand(StopServiceAsync, () => CanStop());
         RefreshCommand = new RelayCommand(RefreshAsync);
         OpenManagementCommand = new RelayCommand(OpenManagementPage, () => !string.IsNullOrEmpty(_managementUrl));
         OpenLogsCommand = new RelayCommand(OpenLogsDirectory, () => !string.IsNullOrEmpty(_logDirectory));
-        ConfigureCommand = new RelayCommand(OpenConfigureWizard);
+        CheckForUpdateCommand = new RelayCommand(CheckForUpdateAsync, () => !_isUpdateInProgress);
         BrowseExecutableCommand = new RelayCommand(BrowseExecutable);
         BrowseConfigCommand = new RelayCommand(BrowseConfig);
         OpenExecutableDirCommand = new RelayCommand(OpenExecutableDirectory, () => !string.IsNullOrEmpty(_executablePath));
@@ -267,6 +320,11 @@ public class MainViewModel : ViewModelBase
 
     private async Task InitializeAsync()
     {
+        if (string.IsNullOrWhiteSpace(_settings.ExecutablePath))
+        {
+            await RunFirstTimeSetupAsync();
+        }
+
         await RefreshAsync();
         _refreshTimer.Start();
 
@@ -277,6 +335,95 @@ public class MainViewModel : ViewModelBase
                 await Task.Delay(TimeSpan.FromSeconds(_settings.AutoStartDelaySeconds));
             }
             await StartServiceAsync();
+        }
+
+        if (_settings.CheckForUpdatesOnStartup && !string.IsNullOrWhiteSpace(_settings.ExecutablePath))
+        {
+            _ = CheckForUpdateSilentAsync();
+        }
+    }
+
+    private async Task RunFirstTimeSetupAsync()
+    {
+        var answer = MessageBox.Show(
+            "检测到首次使用，是否自动下载 CPA？\n\n选择「是」将自动下载最新版本到程序目录。",
+            "首次使用",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (answer != MessageBoxResult.Yes)
+            return;
+
+        // Check for latest version
+        UpdateStatusText = "正在获取最新版本信息...";
+        AddDiagnosticLine("[launcher] 首次安装：正在获取最新版本信息...");
+
+        var info = await _updateService.CheckForUpdateAsync(_settings.CpaGitHubRepo, currentVersion: null);
+        if (info is null)
+        {
+            UpdateStatusText = "";
+            AddDiagnosticLine("[launcher] 无法获取 CPA 版本信息，请稍后手动配置。");
+            MessageBox.Show("无法获取 CPA 版本信息，请检查网络后重试，或手动下载配置。", "获取版本失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // Determine install directory
+        var launcherDir = AppContext.BaseDirectory;
+        var cpaDir = Path.Combine(launcherDir, "cpa");
+
+        AddDiagnosticLine($"[launcher] 发现最新版本 {info.TagName}（{info.AssetSize / 1024.0 / 1024.0:F1} MB），开始下载...");
+
+        // Download with progress
+        IsUpdateInProgress = true;
+        OnPropertyChanged(nameof(UpdateProgressVisibility));
+        UpdateProgress = 0;
+        UpdateStatusText = "正在下载 CPA...";
+
+        var progress = new Progress<(long downloaded, long total)>(p =>
+        {
+            if (p.total > 0)
+                UpdateProgress = (int)(p.downloaded * 100 / p.total);
+            UpdateStatusText = $"正在下载 CPA... {p.downloaded / 1024.0 / 1024.0:F1} / {p.total / 1024.0 / 1024.0:F1} MB";
+        });
+
+        var result = await _updateService.InstallLatestAsync(cpaDir, info, progress);
+
+        IsUpdateInProgress = false;
+        OnPropertyChanged(nameof(UpdateProgressVisibility));
+
+        if (!result.Success || result.ExePath is null)
+        {
+            UpdateStatusText = "安装失败";
+            AddDiagnosticLine($"[launcher] {result.Message}");
+            MessageBox.Show(result.Message, "安装失败", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        // Set executable path
+        ExecutablePath = result.ExePath;
+        _settings.LastInstalledCpaVersion = info.TagName;
+        SaveSettings();
+
+        UpdateStatusText = $"CPA {info.TagName} 安装完成";
+        AddDiagnosticLine($"[launcher] {result.Message}");
+
+        // Show setup wizard
+        var wizard = new Views.SetupWizardWindow
+        {
+            Owner = Application.Current.MainWindow
+        };
+
+        if (wizard.ShowDialog() == true)
+        {
+            var configFilePath = Path.Combine(cpaDir, "config.yaml");
+            Services.CpaConfigGenerator.WriteDefaultConfig(configFilePath, wizard.Host, wizard.Port, wizard.ProxyUrl, wizard.SecretKey);
+            ConfigPath = configFilePath;
+            AddDiagnosticLine($"[launcher] 配置文件已生成：{configFilePath}");
+        }
+        else
+        {
+            AddDiagnosticLine("[launcher] 用户跳过了配置向导，请手动配置 config.yaml。");
+            MessageBox.Show("你可以稍后手动创建 config.yaml 并在路径设置中指定。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 
@@ -295,6 +442,9 @@ public class MainViewModel : ViewModelBase
         _isDarkMode = _settings.UseDarkTheme;
         OnPropertyChanged(nameof(IsDarkMode));
         ApplyTheme(_isDarkMode);
+
+        _checkForUpdatesOnStartup = _settings.CheckForUpdatesOnStartup;
+        OnPropertyChanged(nameof(CheckForUpdatesOnStartup));
     }
 
     private void SaveSettings()
@@ -509,11 +659,136 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    private Task OpenConfigureWizard()
+    // --- Update logic ---
+
+    private async Task CheckForUpdateSilentAsync()
     {
-        MessageBox.Show("配置向导功能将在后续阶段实现。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-        return Task.CompletedTask;
+        UpdateStatusText = "正在检查 CPA 更新...";
+        AddDiagnosticLine("[launcher] 正在检查 CPA 更新...");
+
+        var info = await _updateService.CheckForUpdateAsync(
+            _settings.CpaGitHubRepo, _settings.LastInstalledCpaVersion);
+
+        if (info is null)
+        {
+            UpdateStatusText = "";
+            AddDiagnosticLine("[launcher] CPA 已是最新版本，或无法获取更新信息。");
+            return;
+        }
+
+        UpdateStatusText = $"发现新版本：{info.TagName}";
+        AddDiagnosticLine($"[launcher] 发现 CPA 新版本：{info.TagName}（{info.AssetSize / 1024.0 / 1024.0:F1} MB）");
+
+        var answer = MessageBox.Show(
+            $"发现 CPA 新版本 {info.TagName}（{info.AssetSize / 1024.0 / 1024.0:F1} MB）。\n\n是否立即下载并更新？",
+            "CPA 更新可用",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (answer == MessageBoxResult.Yes)
+        {
+            await PerformUpdateAsync(info);
+        }
+        else
+        {
+            UpdateStatusText = "";
+        }
     }
+
+    private async Task CheckForUpdateAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_settings.ExecutablePath))
+        {
+            MessageBox.Show("请先配置 CPA 可执行文件路径。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        UpdateStatusText = "正在检查 CPA 更新...";
+        AddDiagnosticLine("[launcher] 正在检查 CPA 更新...");
+
+        var info = await _updateService.CheckForUpdateAsync(
+            _settings.CpaGitHubRepo, _settings.LastInstalledCpaVersion);
+
+        if (info is null)
+        {
+            UpdateStatusText = "";
+            AddDiagnosticLine("[launcher] CPA 已是最新版本，或无法获取更新信息。");
+            MessageBox.Show("CPA 已是最新版本，或无法获取更新信息。", "检查更新", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        UpdateStatusText = $"发现新版本：{info.TagName}";
+        AddDiagnosticLine($"[launcher] 发现 CPA 新版本：{info.TagName}（{info.AssetSize / 1024.0 / 1024.0:F1} MB）");
+
+        var answer = MessageBox.Show(
+            $"发现 CPA 新版本 {info.TagName}（{info.AssetSize / 1024.0 / 1024.0:F1} MB）。\n\n是否立即下载并更新？",
+            "CPA 更新可用",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (answer == MessageBoxResult.Yes)
+        {
+            await PerformUpdateAsync(info);
+        }
+        else
+        {
+            UpdateStatusText = "";
+        }
+    }
+
+    private async Task PerformUpdateAsync(CpaUpdateInfo info)
+    {
+        IsUpdateInProgress = true;
+        OnPropertyChanged(nameof(UpdateProgressVisibility));
+        UpdateProgress = 0;
+        UpdateStatusText = "正在下载更新...";
+
+        // Stop CPA if running
+        if (_processManager.IsManagedProcessRunning)
+        {
+            AddDiagnosticLine("[launcher] 更新前停止 CPA 进程...");
+            await StopServiceAsync();
+        }
+
+        var progress = new Progress<(long downloaded, long total)>(p =>
+        {
+            if (p.total > 0)
+                UpdateProgress = (int)(p.downloaded * 100 / p.total);
+            UpdateStatusText = $"正在下载更新... {p.downloaded / 1024.0 / 1024.0:F1} / {p.total / 1024.0 / 1024.0:F1} MB";
+        });
+
+        var result = await _updateService.ApplyUpdateAsync(info, _settings.ExecutablePath!, progress);
+
+        IsUpdateInProgress = false;
+        OnPropertyChanged(nameof(UpdateProgressVisibility));
+
+        if (result.Success)
+        {
+            _settings.LastInstalledCpaVersion = info.TagName;
+            SaveSettings();
+            UpdateStatusText = $"已更新到 {info.TagName}";
+            AddDiagnosticLine($"[launcher] {result.Message}");
+
+            var restart = MessageBox.Show(
+                $"{result.Message}\n\n是否立即启动 CPA？",
+                "更新成功",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information);
+
+            if (restart == MessageBoxResult.Yes)
+            {
+                await StartServiceAsync();
+            }
+        }
+        else
+        {
+            UpdateStatusText = "更新失败";
+            AddDiagnosticLine($"[launcher] {result.Message}");
+            MessageBox.Show(result.Message, "更新失败", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    // --- File browsing ---
 
     private Task BrowseExecutable()
     {
@@ -581,6 +856,8 @@ public class MainViewModel : ViewModelBase
         return Task.CompletedTask;
     }
 
+    // --- Log operations ---
+
     private Task CopyLogs()
     {
         try
@@ -627,6 +904,8 @@ public class MainViewModel : ViewModelBase
         return Task.CompletedTask;
     }
 
+    // --- Events ---
+
     private void OnProcessOutput(object? sender, string line)
     {
         Application.Current.Dispatcher.InvokeAsync(() => AddDiagnosticLine(line), DispatcherPriority.Background);
@@ -644,6 +923,8 @@ public class MainViewModel : ViewModelBase
             DiagnosticLines.RemoveAt(0);
     }
 
+    // --- Window management ---
+
     private Task ShowWindow()
     {
         var window = Application.Current.MainWindow;
@@ -660,14 +941,17 @@ public class MainViewModel : ViewModelBase
     {
         if (_processManager.IsManagedProcessRunning)
         {
-            var result = MessageBox.Show(
-                "当前 CPA 仍由启动器托管。\n\n" +
-                "「是」= 停止 CPA 后退出\n" +
-                "「否」= 保留 CPA 运行，仅退出启动器\n" +
-                "「取消」= 不退出",
-                "退出前确认",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question);
+            var result = MessageBox.Show(new MessageBoxInfo
+            {
+                Message = "当前 CPA 仍由启动器托管。\n\n" +
+                    "「是」= 停止 CPA 后退出\n" +
+                    "「否」= 保留 CPA 运行，仅退出启动器\n" +
+                    "「取消」= 不退出",
+                Caption = "退出前确认",
+                Button = MessageBoxButton.YesNoCancel,
+                IconBrushKey = ResourceToken.AccentBrush,
+                IconKey = ResourceToken.AskGeometry,
+            });
 
             if (result == MessageBoxResult.Cancel)
                 return;

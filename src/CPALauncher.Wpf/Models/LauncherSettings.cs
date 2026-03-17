@@ -17,4 +17,10 @@ public sealed class LauncherSettings
     public bool OpenManagementPageAfterStart { get; set; } = true;
 
     public bool UseDarkTheme { get; set; }
+
+    public bool CheckForUpdatesOnStartup { get; set; } = true;
+
+    public string CpaGitHubRepo { get; set; } = "router-for-me/CLIProxyAPI";
+
+    public string? LastInstalledCpaVersion { get; set; }
 }

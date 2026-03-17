@@ -1,5 +1,5 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/CPALauncher/CPALauncher.csproj" />
+    <Project Path="src/CPALauncher.Wpf/CPALauncher.Wpf.csproj" />
   </Folder>
 </Solution>

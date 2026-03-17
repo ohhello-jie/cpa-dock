@@ -79,6 +79,13 @@
                                        FontWeight="SemiBold"
                                        Foreground="{DynamicResource PrimaryTextBrush}"/>
                         </StackPanel>
+                        <TextBlock Text="{Binding UpdateStatusText}" FontSize="11"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap" Margin="0,8,0,0"
+                                   Visibility="{Binding UpdateStatusVisibility}"/>
+                        <ProgressBar Value="{Binding UpdateProgress}" Maximum="100" Height="6"
+                                     Margin="0,6,0,0"
+                                     Visibility="{Binding UpdateProgressVisibility}"/>
                     </StackPanel>
                 </Border>
 
@@ -107,7 +114,7 @@
                             <Button Content="重新检测" Command="{Binding RefreshCommand}"
                                     HorizontalAlignment="Stretch"
                                     Margin="3,0,3,0" Height="46" FontSize="13"/>
-                            <Button Content="配置向导" Command="{Binding ConfigureCommand}"
+                            <Button Content="检查更新" Command="{Binding CheckForUpdateCommand}"
                                     HorizontalAlignment="Stretch"
                                     Margin="6,0,0,0" Height="46" FontSize="13"/>
                         </UniformGrid>
@@ -235,7 +242,9 @@
                         <CheckBox Content="Windows 登录时自动启动启动器"
                                   IsChecked="{Binding LaunchOnWindowsStartup}" FontSize="12" Margin="0,0,0,6"/>
                         <CheckBox Content="服务启动后自动打开管理页"
-                                  IsChecked="{Binding OpenManagementPageAfterStart}" FontSize="12" Margin="0,0,0,10"/>
+                                  IsChecked="{Binding OpenManagementPageAfterStart}" FontSize="12" Margin="0,0,0,6"/>
+                        <CheckBox Content="启动时自动检查 CPA 更新"
+                                  IsChecked="{Binding CheckForUpdatesOnStartup}" FontSize="12" Margin="0,0,0,10"/>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="自动拉起延迟" FontSize="12"
                                        Foreground="{DynamicResource SecondaryTextBrush}"
