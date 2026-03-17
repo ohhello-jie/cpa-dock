@@ -193,7 +193,7 @@ publish/
 # Note: Comment the next line if you want to checkin your web deploy settings,
 # but database connection strings (with potential passwords) will be unencrypted
 *.pubxml
-!src/CPALauncher/Properties/PublishProfiles/SingleFile.pubxml
+!src/CPALauncher.Wpf/Properties/PublishProfiles/SingleFile.pubxml
 *.publishproj
 
 # Microsoft Azure Web App publish settings. Comment the next line if you want to
@@ -484,4 +484,7 @@ $RECYCLE.BIN/
 
 # Local recovery scratch
 _decompiled2/
+
+# Claude Code
+.claude/
 

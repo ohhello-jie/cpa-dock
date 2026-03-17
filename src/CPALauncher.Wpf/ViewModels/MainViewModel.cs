@@ -1,0 +1,708 @@
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Net.Http;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Threading;
+using CPALauncher.Models;
+using CPALauncher.Services;
+
+namespace CPALauncher.ViewModels;
+
+public class MainViewModel : ViewModelBase
+{
+    private readonly CpaProcessManager _processManager = new();
+    private readonly CpaConfigInspector _configInspector = new();
+    private readonly LauncherSettingsStore _settingsStore = new();
+    private readonly WindowsStartupManager _startupManager = new();
+    private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(2) };
+    private readonly DispatcherTimer _refreshTimer;
+
+    private LauncherStatus _currentStatus = LauncherStatus.Unconfigured;
+    private LauncherSettings _settings = new();
+    private CpaRuntimeInfo? _runtimeInfo;
+
+    private string _statusText = "未配置";
+    private string _statusDetail = "请先配置 CPA 可执行文件和配置文件路径。";
+    private Brush _statusBackgroundBrush = new SolidColorBrush(Color.FromRgb(232, 236, 241));
+    private Brush _statusForegroundBrush = new SolidColorBrush(Color.FromRgb(32, 31, 30));
+    private string _managedProcessId = "无";
+
+    private string _executablePath = "";
+    private string _configPath = "";
+    private string _managementUrl = "";
+    private string _probeUrl = "";
+    private string _configDirectory = "";
+    private string _logDirectory = "";
+    private string _authDirectory = "";
+
+    private bool _minimizeToTrayOnClose = true;
+    private bool _autoStartService;
+    private bool _launchOnWindowsStartup;
+    private bool _openManagementPageAfterStart = true;
+    private int _autoStartDelaySeconds;
+    private bool _isDarkMode;
+
+    public ObservableCollection<string> DiagnosticLines { get; } = new();
+
+    // Status Properties
+    public string StatusText
+    {
+        get => _statusText;
+        set => SetProperty(ref _statusText, value);
+    }
+
+    public string StatusDetail
+    {
+        get => _statusDetail;
+        set => SetProperty(ref _statusDetail, value);
+    }
+
+    public Brush StatusBackgroundBrush
+    {
+        get => _statusBackgroundBrush;
+        set => SetProperty(ref _statusBackgroundBrush, value);
+    }
+
+    public Brush StatusForegroundBrush
+    {
+        get => _statusForegroundBrush;
+        set => SetProperty(ref _statusForegroundBrush, value);
+    }
+
+    public string ManagedProcessId
+    {
+        get => _managedProcessId;
+        set => SetProperty(ref _managedProcessId, value);
+    }
+
+    // Path Properties
+    public string ExecutablePath
+    {
+        get => _executablePath;
+        set
+        {
+            if (SetProperty(ref _executablePath, value))
+            {
+                _settings.ExecutablePath = value;
+                SaveSettings();
+            }
+        }
+    }
+
+    public string ConfigPath
+    {
+        get => _configPath;
+        set
+        {
+            if (SetProperty(ref _configPath, value))
+            {
+                _settings.ConfigPath = value;
+                SaveSettings();
+            }
+        }
+    }
+
+    // Info Properties
+    public string ManagementUrl
+    {
+        get => _managementUrl;
+        set => SetProperty(ref _managementUrl, value);
+    }
+
+    public string ProbeUrl
+    {
+        get => _probeUrl;
+        set => SetProperty(ref _probeUrl, value);
+    }
+
+    public string ConfigDirectory
+    {
+        get => _configDirectory;
+        set => SetProperty(ref _configDirectory, value);
+    }
+
+    public string LogDirectory
+    {
+        get => _logDirectory;
+        set => SetProperty(ref _logDirectory, value);
+    }
+
+    public string AuthDirectory
+    {
+        get => _authDirectory;
+        set => SetProperty(ref _authDirectory, value);
+    }
+
+    // Settings Properties
+    public bool MinimizeToTrayOnClose
+    {
+        get => _minimizeToTrayOnClose;
+        set
+        {
+            if (SetProperty(ref _minimizeToTrayOnClose, value))
+            {
+                _settings.MinimizeToTrayOnClose = value;
+                SaveSettings();
+            }
+        }
+    }
+
+    public bool AutoStartService
+    {
+        get => _autoStartService;
+        set
+        {
+            if (SetProperty(ref _autoStartService, value))
+            {
+                _settings.AutoStartService = value;
+                SaveSettings();
+            }
+        }
+    }
+
+    public bool LaunchOnWindowsStartup
+    {
+        get => _launchOnWindowsStartup;
+        set
+        {
+            if (SetProperty(ref _launchOnWindowsStartup, value))
+            {
+                _settings.LaunchLauncherOnWindowsStartup = value;
+                _startupManager.SetEnabled(value);
+                SaveSettings();
+            }
+        }
+    }
+
+    public bool OpenManagementPageAfterStart
+    {
+        get => _openManagementPageAfterStart;
+        set
+        {
+            if (SetProperty(ref _openManagementPageAfterStart, value))
+            {
+                _settings.OpenManagementPageAfterStart = value;
+                SaveSettings();
+            }
+        }
+    }
+
+    public int AutoStartDelaySeconds
+    {
+        get => _autoStartDelaySeconds;
+        set
+        {
+            if (SetProperty(ref _autoStartDelaySeconds, value))
+            {
+                _settings.AutoStartDelaySeconds = value;
+                SaveSettings();
+            }
+        }
+    }
+
+    public bool IsDarkMode
+    {
+        get => _isDarkMode;
+        set
+        {
+            if (SetProperty(ref _isDarkMode, value))
+            {
+                _settings.UseDarkTheme = value;
+                SaveSettings();
+                ApplyTheme(value);
+            }
+        }
+    }
+
+    // Commands
+    public ICommand StartCommand { get; }
+    public ICommand StopCommand { get; }
+    public ICommand RefreshCommand { get; }
+    public ICommand OpenManagementCommand { get; }
+    public ICommand OpenLogsCommand { get; }
+    public ICommand ConfigureCommand { get; }
+    public ICommand BrowseExecutableCommand { get; }
+    public ICommand BrowseConfigCommand { get; }
+    public ICommand OpenExecutableDirCommand { get; }
+    public ICommand OpenConfigDirCommand { get; }
+    public ICommand CopyLogsCommand { get; }
+    public ICommand ExportLogsCommand { get; }
+    public ICommand ClearLogsCommand { get; }
+    public ICommand ShowWindowCommand { get; }
+    public ICommand ExitApplicationCommand { get; }
+
+    public MainViewModel()
+    {
+        // Initialize commands
+        StartCommand = new RelayCommand(StartServiceAsync, () => CanStart());
+        StopCommand = new RelayCommand(StopServiceAsync, () => CanStop());
+        RefreshCommand = new RelayCommand(RefreshAsync);
+        OpenManagementCommand = new RelayCommand(OpenManagementPage, () => !string.IsNullOrEmpty(_managementUrl));
+        OpenLogsCommand = new RelayCommand(OpenLogsDirectory, () => !string.IsNullOrEmpty(_logDirectory));
+        ConfigureCommand = new RelayCommand(OpenConfigureWizard);
+        BrowseExecutableCommand = new RelayCommand(BrowseExecutable);
+        BrowseConfigCommand = new RelayCommand(BrowseConfig);
+        OpenExecutableDirCommand = new RelayCommand(OpenExecutableDirectory, () => !string.IsNullOrEmpty(_executablePath));
+        OpenConfigDirCommand = new RelayCommand(OpenConfigDirectory, () => !string.IsNullOrEmpty(_configPath));
+        CopyLogsCommand = new RelayCommand(CopyLogs);
+        ExportLogsCommand = new RelayCommand(ExportLogs);
+        ClearLogsCommand = new RelayCommand(ClearLogs);
+        ShowWindowCommand = new RelayCommand(ShowWindow);
+        ExitApplicationCommand = new RelayCommand(ExitApplication);
+
+        // Wire process manager events
+        _processManager.OutputReceived += OnProcessOutput;
+        _processManager.ProcessExited += OnProcessExited;
+
+        // Setup refresh timer
+        _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(2500) };
+        _refreshTimer.Tick += async (s, e) => await RefreshAsync();
+
+        // Load settings and initialize
+        LoadSettings();
+        _ = InitializeAsync();
+    }
+
+    private async Task InitializeAsync()
+    {
+        await RefreshAsync();
+        _refreshTimer.Start();
+
+        if (_settings.AutoStartService && _currentStatus == LauncherStatus.Stopped)
+        {
+            if (_settings.AutoStartDelaySeconds > 0)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(_settings.AutoStartDelaySeconds));
+            }
+            await StartServiceAsync();
+        }
+    }
+
+    private void LoadSettings()
+    {
+        _settings = _settingsStore.Load();
+        ExecutablePath = _settings.ExecutablePath ?? "";
+        ConfigPath = _settings.ConfigPath ?? "";
+        MinimizeToTrayOnClose = _settings.MinimizeToTrayOnClose;
+        AutoStartService = _settings.AutoStartService;
+        LaunchOnWindowsStartup = _settings.LaunchLauncherOnWindowsStartup;
+        OpenManagementPageAfterStart = _settings.OpenManagementPageAfterStart;
+        AutoStartDelaySeconds = _settings.AutoStartDelaySeconds;
+
+        // 不触发 setter 以避免重复保存，直接赋值并应用主题
+        _isDarkMode = _settings.UseDarkTheme;
+        OnPropertyChanged(nameof(IsDarkMode));
+        ApplyTheme(_isDarkMode);
+    }
+
+    private void SaveSettings()
+    {
+        try
+        {
+            _settingsStore.Save(_settings);
+        }
+        catch (Exception ex)
+        {
+            AddDiagnosticLine($"[launcher] 保存设置失败：{ex.Message}");
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            InspectConfiguration();
+            UpdateProcessInfo();
+            var serviceReachable = await ProbeServiceAsync();
+            UpdateStatusDisplay(serviceReachable);
+        }
+        catch (Exception ex)
+        {
+            AddDiagnosticLine($"[launcher] 刷新状态失败：{ex.Message}");
+        }
+    }
+
+    private void InspectConfiguration()
+    {
+        if (string.IsNullOrWhiteSpace(_settings.ExecutablePath) || string.IsNullOrWhiteSpace(_settings.ConfigPath))
+        {
+            _runtimeInfo = null;
+            ManagementUrl = "";
+            ProbeUrl = "";
+            ConfigDirectory = "";
+            LogDirectory = "";
+            AuthDirectory = "";
+            return;
+        }
+
+        try
+        {
+            _runtimeInfo = _configInspector.Inspect(_settings.ExecutablePath, _settings.ConfigPath);
+            ManagementUrl = _runtimeInfo.ManagementUrl;
+            ProbeUrl = _runtimeInfo.ServiceProbeUrl;
+            ConfigDirectory = _runtimeInfo.ConfigDirectory;
+            LogDirectory = _runtimeInfo.LogDirectory;
+            AuthDirectory = _runtimeInfo.AuthDirectory ?? "";
+        }
+        catch (Exception ex)
+        {
+            _runtimeInfo = null;
+            AddDiagnosticLine($"[launcher] 配置检查失败：{ex.Message}");
+        }
+    }
+
+    private void UpdateProcessInfo()
+    {
+        ManagedProcessId = _processManager.ManagedProcessId?.ToString() ?? "无";
+    }
+
+    private async Task<bool> ProbeServiceAsync()
+    {
+        if (_runtimeInfo == null) return false;
+
+        try
+        {
+            var response = await _httpClient.GetAsync(_runtimeInfo.ServiceProbeUrl);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void UpdateStatusDisplay(bool serviceReachable)
+    {
+        if (_runtimeInfo == null)
+        {
+            _currentStatus = LauncherStatus.Unconfigured;
+            StatusText = "未配置";
+            StatusDetail = "请先配置 CPA 可执行文件和配置文件路径。";
+            StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(232, 236, 241));
+            StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(32, 31, 30));
+            return;
+        }
+
+        var isManaged = _processManager.IsManagedProcessRunning;
+
+        if (isManaged && serviceReachable)
+        {
+            _currentStatus = LauncherStatus.Running;
+            StatusText = "运行中";
+            StatusDetail = "CPA 已运行，当前由启动器托管。";
+            StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(209, 241, 224));
+            StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(15, 85, 43));
+        }
+        else if (isManaged && !serviceReachable)
+        {
+            _currentStatus = LauncherStatus.Starting;
+            StatusText = "启动中";
+            StatusDetail = "CPA 进程已启动，正在等待服务就绪...";
+            StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(255, 242, 204));
+            StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(120, 79, 0));
+        }
+        else if (!isManaged && serviceReachable)
+        {
+            _currentStatus = LauncherStatus.Running;
+            StatusText = "外部运行";
+            StatusDetail = "CPA 正在运行，但不由启动器托管（可能由其他方式启动）。";
+            StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(222, 236, 255));
+            StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(0, 74, 173));
+        }
+        else
+        {
+            _currentStatus = LauncherStatus.Stopped;
+            StatusText = "已停止";
+            StatusDetail = "CPA 当前未运行。";
+            StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(238, 238, 238));
+            StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(66, 66, 66));
+        }
+    }
+
+    private bool CanStart() => _currentStatus == LauncherStatus.Stopped || _currentStatus == LauncherStatus.StartFailed;
+    private bool CanStop() => _currentStatus == LauncherStatus.Running || _currentStatus == LauncherStatus.Starting;
+
+    private async Task StartServiceAsync()
+    {
+        if (_runtimeInfo == null)
+        {
+            MessageBox.Show("请先配置 CPA 可执行文件和配置文件路径。", "无法启动", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        _currentStatus = LauncherStatus.Starting;
+        UpdateStatusDisplay(false);
+
+        var result = await _processManager.StartAsync(_settings.ExecutablePath!, _settings.ConfigPath!);
+
+        if (!result.Success)
+        {
+            _currentStatus = LauncherStatus.StartFailed;
+            StatusText = "启动失败";
+            StatusDetail = result.Message;
+            StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(255, 226, 226));
+            StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(163, 0, 0));
+            MessageBox.Show(result.Message, "启动失败", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        AddDiagnosticLine($"[launcher] {result.Message}");
+        await WaitForServiceReadyAsync();
+
+        if (_settings.OpenManagementPageAfterStart && !string.IsNullOrEmpty(_managementUrl))
+        {
+            OpenManagementPage();
+        }
+    }
+
+    private async Task WaitForServiceReadyAsync()
+    {
+        for (int i = 0; i < 30; i++)
+        {
+            await Task.Delay(500);
+            if (await ProbeServiceAsync())
+            {
+                await RefreshAsync();
+                return;
+            }
+        }
+    }
+
+    private async Task StopServiceAsync()
+    {
+        _currentStatus = LauncherStatus.Stopping;
+        StatusText = "停止中";
+        StatusDetail = "正在停止 CPA 进程...";
+        StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(255, 242, 204));
+        StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(120, 79, 0));
+
+        var result = await _processManager.StopAsync();
+        AddDiagnosticLine($"[launcher] {result.Message}");
+        await RefreshAsync();
+    }
+
+    private void OpenManagementPage()
+    {
+        if (string.IsNullOrEmpty(_managementUrl)) return;
+        try
+        {
+            Process.Start(new ProcessStartInfo(_managementUrl) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"无法打开管理页：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void OpenLogsDirectory()
+    {
+        if (string.IsNullOrEmpty(_logDirectory)) return;
+        try
+        {
+            Process.Start(new ProcessStartInfo(_logDirectory) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"无法打开日志目录：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private Task OpenConfigureWizard()
+    {
+        MessageBox.Show("配置向导功能将在后续阶段实现。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+        return Task.CompletedTask;
+    }
+
+    private Task BrowseExecutable()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Filter = "可执行文件 (*.exe)|*.exe|所有文件 (*.*)|*.*",
+            Title = "选择 cli-proxy-api.exe"
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            ExecutablePath = dialog.FileName;
+            _ = RefreshAsync();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task BrowseConfig()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Filter = "YAML 配置文件 (*.yaml;*.yml)|*.yaml;*.yml|所有文件 (*.*)|*.*",
+            Title = "选择 config.yaml"
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            ConfigPath = dialog.FileName;
+            _ = RefreshAsync();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task OpenExecutableDirectory()
+    {
+        if (string.IsNullOrEmpty(_executablePath)) return Task.CompletedTask;
+        try
+        {
+            var dir = Path.GetDirectoryName(_executablePath);
+            if (!string.IsNullOrEmpty(dir))
+                Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"无法打开目录：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task OpenConfigDirectory()
+    {
+        if (string.IsNullOrEmpty(_configPath)) return Task.CompletedTask;
+        try
+        {
+            var dir = Path.GetDirectoryName(_configPath);
+            if (!string.IsNullOrEmpty(dir))
+                Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"无法打开目录：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task CopyLogs()
+    {
+        try
+        {
+            var logs = string.Join(Environment.NewLine, DiagnosticLines);
+            Clipboard.SetText(logs);
+            MessageBox.Show("日志已复制到剪贴板。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"复制失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task ExportLogs()
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = "文本文件 (*.txt)|*.txt|所有文件 (*.*)|*.*",
+            FileName = $"cpa-launcher-log-{DateTime.Now:yyyyMMdd-HHmmss}.txt"
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            try
+            {
+                File.WriteAllLines(dialog.FileName, DiagnosticLines);
+                MessageBox.Show("日志已导出。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task ClearLogs()
+    {
+        DiagnosticLines.Clear();
+        _processManager.ClearRecentOutput();
+        return Task.CompletedTask;
+    }
+
+    private void OnProcessOutput(object? sender, string line)
+    {
+        Application.Current.Dispatcher.InvokeAsync(() => AddDiagnosticLine(line), DispatcherPriority.Background);
+    }
+
+    private void OnProcessExited(object? sender, int exitCode)
+    {
+        Application.Current.Dispatcher.InvokeAsync(async () => await RefreshAsync());
+    }
+
+    private void AddDiagnosticLine(string line)
+    {
+        DiagnosticLines.Add(line);
+        while (DiagnosticLines.Count > 400)
+            DiagnosticLines.RemoveAt(0);
+    }
+
+    private Task ShowWindow()
+    {
+        var window = Application.Current.MainWindow;
+        if (window != null)
+        {
+            window.Show();
+            window.WindowState = WindowState.Normal;
+            window.Activate();
+        }
+        return Task.CompletedTask;
+    }
+
+    private async Task ExitApplication()
+    {
+        if (_processManager.IsManagedProcessRunning)
+        {
+            var result = MessageBox.Show(
+                "当前 CPA 仍由启动器托管。\n\n" +
+                "「是」= 停止 CPA 后退出\n" +
+                "「否」= 保留 CPA 运行，仅退出启动器\n" +
+                "「取消」= 不退出",
+                "退出前确认",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Cancel)
+                return;
+
+            if (result == MessageBoxResult.Yes)
+            {
+                await _processManager.StopAsync();
+            }
+        }
+
+        _refreshTimer.Stop();
+        _processManager.Dispose();
+
+        if (Application.Current.MainWindow is Views.MainWindow mainWindow)
+        {
+            mainWindow.MarkExiting();
+        }
+
+        Application.Current.Shutdown();
+    }
+
+    private static void ApplyTheme(bool isDark)
+    {
+        var app = Application.Current;
+        if (app == null) return;
+
+        var mergedDicts = app.Resources.MergedDictionaries;
+
+        var skinUri = isDark
+            ? new Uri("pack://application:,,,/HandyControl;component/Themes/SkinDark.xaml")
+            : new Uri("pack://application:,,,/HandyControl;component/Themes/SkinDefault.xaml");
+        var themeUri = new Uri("pack://application:,,,/HandyControl;component/Themes/Theme.xaml");
+
+        mergedDicts.Clear();
+        mergedDicts.Add(new ResourceDictionary { Source = skinUri });
+        mergedDicts.Add(new ResourceDictionary { Source = themeUri });
+    }
+}

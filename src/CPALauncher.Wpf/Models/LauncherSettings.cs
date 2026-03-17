@@ -15,4 +15,6 @@ public sealed class LauncherSettings
     public int AutoStartDelaySeconds { get; set; }
 
     public bool OpenManagementPageAfterStart { get; set; } = true;
+
+    public bool UseDarkTheme { get; set; }
 }

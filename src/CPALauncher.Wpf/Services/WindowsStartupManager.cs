@@ -37,7 +37,7 @@ public sealed class WindowsStartupManager
         var executablePath = Environment.ProcessPath;
         if (string.IsNullOrWhiteSpace(executablePath))
         {
-            executablePath = Application.ExecutablePath;
+            executablePath = System.Reflection.Assembly.GetEntryAssembly()?.Location;
         }
 
         if (string.IsNullOrWhiteSpace(executablePath))
