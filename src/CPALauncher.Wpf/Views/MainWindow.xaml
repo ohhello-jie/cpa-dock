@@ -15,7 +15,6 @@
         <vm:MainViewModel/>
     </hc:Window.DataContext>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Grid Margin="28,24,28,20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -316,5 +315,4 @@
                 </DockPanel>
             </Border>
         </Grid>
-    </ScrollViewer>
 </hc:Window>
