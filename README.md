@@ -1,25 +1,25 @@
 # CPA Launcher
 
-原生 Windows 桌面启动器，用于管理 [CLIProxyAPI](https://github.com/user/CLIProxyAPI) 的本地运行生命周期。
+原生 Windows 桌面启动器，用于管理 [CLIProxyAPI (CPA)](https://github.com/router-for-me/CLIProxyAPI) 的本地运行生命周期。
 
-> 配置一次 `cli-proxy-api.exe` 与 `config.yaml` 路径，之后只需点击按钮即可启动、停止、最小化到托盘并打开管理页。
+> 首次运行自动下载 CPA 并弹出配置向导，之后只需点击按钮即可启动、停止、最小化到托盘并打开管理页。
 
 ![screenshot](docs/screenshot.png)
+
+## 快速开始
+
+1. 从 [Releases](https://github.com/ohhellojie/cpa-dock/releases) 下载 `CPALauncher-win-x64-self-contained.zip`
+2. 解压到任意目录，运行 `CPALauncher.exe`
+3. 首次启动会自动下载最新版 CPA 到程序同级 `cpa/` 目录
+4. 在配置向导中填写监听地址、端口等参数（默认值通常可以直接用）
+5. 点击「启动 CPA」即可
+
+无需安装 .NET 运行时，解压即用。
 
 ## 定位
 
 CPA Launcher **不是** CPA 的替代品、Web 管理页的替代品或配置编辑器。
 它的职责只有一个：**让 CPA 在本地像一个普通桌面应用一样运行**。
-
-## 技术栈
-
-| 项目 | 选型 |
-|------|------|
-| 平台 | Windows |
-| 框架 | .NET 8 + WPF |
-| UI 库 | [HandyControl](https://github.com/HandyOrg/HandyControl) |
-| 托盘 | [Hardcodet.NotifyIcon.Wpf](https://github.com/hardcodet/wpf-notifyicon) |
-| 架构 | MVVM |
 
 ## 功能
 
@@ -49,9 +49,27 @@ CPA Launcher **不是** CPA 的替代品、Web 管理页的替代品或配置编
 
 - 深色 / 浅色主题切换
 
-## 发布
+## 技术栈
+
+| 项目 | 选型 |
+|------|------|
+| 平台 | Windows |
+| 框架 | .NET 8 + WPF |
+| UI 库 | [HandyControl](https://github.com/HandyOrg/HandyControl) |
+| 托盘 | [Hardcodet.NotifyIcon.Wpf](https://github.com/hardcodet/wpf-notifyicon) |
+| 架构 | MVVM |
+
+## 从源码构建
 
 ```powershell
+# 克隆仓库
+git clone https://github.com/ohhellojie/cpa-dock.git
+cd CPALauncher
+
+# 构建
+dotnet build src/CPALauncher.Wpf
+
+# 发布单文件 exe
 powershell -ExecutionPolicy Bypass -File .\scripts\publish-win-x64.ps1
 ```
 
@@ -65,8 +83,12 @@ CPALauncher/
 ├─ src/
 │  └─ CPALauncher.Wpf/       # WPF 主项目
 │     ├─ Models/              # 数据模型
-│     ├─ Services/            # 进程管理、配置检查等服务
+│     ├─ Services/            # 进程管理、配置检查、自动更新等服务
 │     ├─ ViewModels/          # MVVM ViewModel
 │     └─ Views/               # XAML 视图
 └─ README.md
 ```
+
+## 许可证
+
+[MIT](LICENSE)
