@@ -34,17 +34,7 @@ public sealed class WindowsStartupManager
 
     public string BuildLaunchCommand()
     {
-        var executablePath = Environment.ProcessPath;
-        if (string.IsNullOrWhiteSpace(executablePath))
-        {
-            executablePath = System.Reflection.Assembly.GetEntryAssembly()?.Location;
-        }
-
-        if (string.IsNullOrWhiteSpace(executablePath))
-        {
-            throw new InvalidOperationException("无法确定当前启动器 exe 路径，因此不能注册开机自启。");
-        }
-
+        var executablePath = LauncherExecutablePathResolver.ResolveCurrentProcessPath();
         return $"\"{executablePath}\" --minimized";
     }
 }

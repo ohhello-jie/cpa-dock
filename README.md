@@ -1,8 +1,8 @@
 # CPA Launcher
 
-原生 Windows 桌面启动器，用于管理 [CLIProxyAPI (CPA)](https://github.com/router-for-me/CLIProxyAPI) 的本地运行生命周期。
+面向 [CLIProxyAPI (CPA)](https://github.com/router-for-me/CLIProxyAPI) 的原生 Windows 桌面启动器，用来把本地后台服务的安装、启动、状态和更新做成可视化入口。
 
-> 首次运行自动下载 CPA 并弹出配置向导，之后只需点击按钮即可启动、停止、最小化到托盘并打开管理页。
+> 首次运行自动下载 CPA 并弹出配置向导，之后只需点击按钮即可启动、停止、最小化到托盘，并打开管理页查看状态。
 
 ![screenshot](docs/screenshot.png)
 
@@ -18,15 +18,15 @@
 
 ## 定位
 
-CPA Launcher **不是** CPA 的替代品、Web 管理页的替代品或配置编辑器。
-它的职责只有一个：**让 CPA 在本地像一个普通桌面应用一样运行**。
+CPA Launcher **不是** CPA 本体，也不是 Web 管理页或完整配置编辑器。
+它的职责很简单：**把 CPA 这个本地后台服务桌面化、可视化**，让安装、启动、停止、状态查看、日志诊断和更新都可以在一个 Windows 启动器里完成。
 
 ## 功能
 
 **核心**
 
 - 首次运行自动下载 CPA 并弹出配置向导，开箱即用
-- 一键启动 / 停止 CPA 进程
+- 一键启动 / 停止 CPA 后台服务
 - 系统托盘常驻（双击恢复、右键菜单操作）
 - 实时状态监控（运行中 / 启动中 / 已停止 / 外部运行）
 - 自动检查 CPA 更新并一键升级
