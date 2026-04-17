@@ -1,3 +1,5 @@
+using CPALauncher.Services;
+
 namespace CPALauncher.Views;
 
 public partial class SetupWizardWindow
@@ -24,6 +26,9 @@ public partial class SetupWizardWindow
     public SetupWizardWindow()
     {
         InitializeComponent();
+        HostTextBox.Text = LauncherSetupDefaults.DefaultHost;
+        PortNumericUpDown.Value = LauncherSetupDefaults.DefaultPort;
+        ProxyUrlTextBox.Text = LauncherSetupDefaults.DefaultProxyUrl;
     }
 
     private void OnFinishClick(object sender, System.Windows.RoutedEventArgs e)

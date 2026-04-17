@@ -65,16 +65,21 @@
                        FontSize="12" VerticalAlignment="Center"
                        Foreground="{DynamicResource SecondaryTextBrush}"/>
             <TextBox Grid.Row="4" Grid.Column="1"
-                     x:Name="ProxyUrlTextBox" Text="http://127.0.0.1:7897"
+                     x:Name="ProxyUrlTextBox"
                      FontSize="12"
                      hc:InfoElement.Placeholder="留空则不使用代理"/>
 
             <TextBlock Grid.Row="6" Grid.Column="0" Text="管理密钥"
                        FontSize="12" VerticalAlignment="Center"
                        Foreground="{DynamicResource SecondaryTextBrush}"/>
-            <PasswordBox Grid.Row="6" Grid.Column="1"
-                         x:Name="SecretKeyPasswordBox"
-                         FontSize="12"/>
+            <StackPanel Grid.Row="6" Grid.Column="1">
+                <PasswordBox x:Name="SecretKeyPasswordBox"
+                             FontSize="12"/>
+                <TextBlock Text="留空则自动生成，并保存到启动器里方便后续复制登录。"
+                           FontSize="11" Margin="0,6,0,0"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource ThirdlyTextBrush}"/>
+            </StackPanel>
         </Grid>
 
         <!-- Buttons -->

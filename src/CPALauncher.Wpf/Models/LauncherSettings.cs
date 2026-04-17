@@ -23,4 +23,6 @@ public sealed class LauncherSettings
     public string CpaGitHubRepo { get; set; } = "router-for-me/CLIProxyAPI";
 
     public string? LastInstalledCpaVersion { get; set; }
+
+    public string? ManagementSecretKey { get; set; }
 }

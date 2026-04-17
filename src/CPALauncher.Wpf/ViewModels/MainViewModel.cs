@@ -144,6 +144,18 @@ public class MainViewModel : ViewModelBase
         set => SetProperty(ref _authDirectory, value);
     }
 
+    public string ManagementSecretKeyDisplay =>
+        string.IsNullOrWhiteSpace(_settings.ManagementSecretKey)
+            ? "未保存"
+            : MaskManagementSecretKey(_settings.ManagementSecretKey);
+
+    public string ManagementSecretKeyToolTip =>
+        string.IsNullOrWhiteSpace(_settings.ManagementSecretKey)
+            ? "当前没有已保存的管理密钥。"
+            : _settings.ManagementSecretKey;
+
+    public bool HasManagementSecretKey => !string.IsNullOrWhiteSpace(_settings.ManagementSecretKey);
+
     // Settings Properties
     public bool MinimizeToTrayOnClose
     {
@@ -278,6 +290,7 @@ public class MainViewModel : ViewModelBase
     public ICommand BrowseConfigCommand { get; }
     public ICommand OpenExecutableDirCommand { get; }
     public ICommand OpenConfigDirCommand { get; }
+    public ICommand CopyManagementSecretKeyCommand { get; }
     public ICommand CopyLogsCommand { get; }
     public ICommand ExportLogsCommand { get; }
     public ICommand ClearLogsCommand { get; }
@@ -299,6 +312,7 @@ public class MainViewModel : ViewModelBase
         BrowseConfigCommand = new RelayCommand(BrowseConfig);
         OpenExecutableDirCommand = new RelayCommand(OpenExecutableDirectory, () => !string.IsNullOrEmpty(_executablePath));
         OpenConfigDirCommand = new RelayCommand(OpenConfigDirectory, () => !string.IsNullOrEmpty(_configPath));
+        CopyManagementSecretKeyCommand = new RelayCommand(CopyManagementSecretKey, () => HasManagementSecretKey);
         CopyLogsCommand = new RelayCommand(CopyLogs);
         ExportLogsCommand = new RelayCommand(ExportLogs);
         ClearLogsCommand = new RelayCommand(ClearLogs);
@@ -416,9 +430,27 @@ public class MainViewModel : ViewModelBase
         if (wizard.ShowDialog() == true)
         {
             var configFilePath = Path.Combine(cpaDir, "config.yaml");
-            Services.CpaConfigGenerator.WriteDefaultConfig(configFilePath, wizard.Host, wizard.Port, wizard.ProxyUrl, wizard.SecretKey);
+            var effectiveSecretKey = Services.CpaConfigGenerator.WriteDefaultConfig(
+                configFilePath,
+                wizard.Host,
+                wizard.Port,
+                wizard.ProxyUrl,
+                wizard.SecretKey);
             ConfigPath = configFilePath;
+            UpdateStoredManagementSecretKey(effectiveSecretKey);
             AddDiagnosticLine($"[launcher] 配置文件已生成：{configFilePath}");
+
+            if (string.IsNullOrWhiteSpace(wizard.SecretKey))
+            {
+                AddDiagnosticLine("[launcher] 已自动生成管理密钥，并保存到启动器。");
+                TryCopyManagementSecretKeyToClipboard(
+                    effectiveSecretKey,
+                    "已自动生成管理密钥，并复制到剪贴板。\n\n后续也可以在启动器首页点击“复制管理密钥”再次获取。");
+            }
+            else
+            {
+                AddDiagnosticLine("[launcher] 已保存当前管理密钥，可在启动器首页再次复制。");
+            }
         }
         else
         {
@@ -445,6 +477,7 @@ public class MainViewModel : ViewModelBase
 
         _checkForUpdatesOnStartup = _settings.CheckForUpdatesOnStartup;
         OnPropertyChanged(nameof(CheckForUpdatesOnStartup));
+        NotifyManagementSecretKeyChanged();
     }
 
     private void SaveSettings()
@@ -457,6 +490,21 @@ public class MainViewModel : ViewModelBase
         {
             AddDiagnosticLine($"[launcher] 保存设置失败：{ex.Message}");
         }
+    }
+
+    private void UpdateStoredManagementSecretKey(string? secretKey)
+    {
+        _settings.ManagementSecretKey = string.IsNullOrWhiteSpace(secretKey) ? null : secretKey.Trim();
+        SaveSettings();
+        NotifyManagementSecretKeyChanged();
+    }
+
+    private void NotifyManagementSecretKeyChanged()
+    {
+        OnPropertyChanged(nameof(ManagementSecretKeyDisplay));
+        OnPropertyChanged(nameof(ManagementSecretKeyToolTip));
+        OnPropertyChanged(nameof(HasManagementSecretKey));
+        CommandManager.InvalidateRequerySuggested();
     }
 
     private async Task RefreshAsync()
@@ -873,6 +921,18 @@ public class MainViewModel : ViewModelBase
         return Task.CompletedTask;
     }
 
+    private Task CopyManagementSecretKey()
+    {
+        if (string.IsNullOrWhiteSpace(_settings.ManagementSecretKey))
+        {
+            MessageBox.Show("当前没有已保存的管理密钥。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            return Task.CompletedTask;
+        }
+
+        TryCopyManagementSecretKeyToClipboard(_settings.ManagementSecretKey, "管理密钥已复制到剪贴板。");
+        return Task.CompletedTask;
+    }
+
     private Task ExportLogs()
     {
         var dialog = new Microsoft.Win32.SaveFileDialog
@@ -988,6 +1048,29 @@ public class MainViewModel : ViewModelBase
         mergedDicts.Clear();
         mergedDicts.Add(new ResourceDictionary { Source = skinUri });
         mergedDicts.Add(new ResourceDictionary { Source = themeUri });
+    }
+
+    private static string MaskManagementSecretKey(string secretKey)
+    {
+        if (secretKey.Length <= 8)
+        {
+            return secretKey;
+        }
+
+        return $"{secretKey[..4]}...{secretKey[^4..]}";
+    }
+
+    private static void TryCopyManagementSecretKeyToClipboard(string secretKey, string successMessage)
+    {
+        try
+        {
+            Clipboard.SetText(secretKey);
+            MessageBox.Show(successMessage, "管理密钥", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"管理密钥已生成，但复制到剪贴板失败：{ex.Message}", "管理密钥", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     private string GetUnconfiguredStatusDetail()

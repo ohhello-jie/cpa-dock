@@ -1,12 +1,14 @@
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace CPALauncher.Services;
 
 public static class CpaConfigGenerator
 {
-    public static void WriteDefaultConfig(string configPath, string host, int port, string? proxyUrl, string? secretKey)
+    public static string WriteDefaultConfig(string configPath, string host, int port, string? proxyUrl, string? secretKey)
     {
+        var effectiveSecretKey = ResolveManagementSecretKey(secretKey);
         var sb = new StringBuilder();
 
         sb.AppendLine("# Server host/interface to bind to.");
@@ -26,11 +28,9 @@ public static class CpaConfigGenerator
         sb.AppendLine("# Management API settings");
         sb.AppendLine("remote-management:");
         sb.AppendLine("  allow-remote: false");
-        if (!string.IsNullOrWhiteSpace(secretKey))
-            sb.AppendLine($"  secret-key: \"{secretKey}\"");
-        else
-            sb.AppendLine("  secret-key: \"\"");
+        sb.AppendLine($"  secret-key: \"{effectiveSecretKey}\"");
         sb.AppendLine("  disable-control-panel: false");
+        sb.AppendLine($"  panel-github-repository: \"{LauncherSetupDefaults.DefaultPanelGitHubRepository}\"");
 
         sb.AppendLine("# Authentication directory");
         var authDir = Path.Combine(
@@ -63,7 +63,7 @@ public static class CpaConfigGenerator
         if (!string.IsNullOrWhiteSpace(proxyUrl))
             sb.AppendLine($"proxy-url: \"{proxyUrl}\"");
         else
-            sb.AppendLine("proxy-url: \"\"");
+            sb.AppendLine($"proxy-url: \"{LauncherSetupDefaults.DefaultProxyUrl}\"");
 
         sb.AppendLine("force-model-prefix: false");
         sb.AppendLine("passthrough-headers: false");
@@ -93,5 +93,16 @@ public static class CpaConfigGenerator
             Directory.CreateDirectory(dir);
 
         File.WriteAllText(configPath, sb.ToString(), new UTF8Encoding(false));
+        return effectiveSecretKey;
+    }
+
+    private static string ResolveManagementSecretKey(string? secretKey)
+    {
+        if (!string.IsNullOrWhiteSpace(secretKey))
+        {
+            return secretKey.Trim();
+        }
+
+        return Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
     }
 }
