@@ -15,7 +15,7 @@ public sealed class CpaUpdateService
         _httpClient = httpClient;
     }
 
-    public async Task<CpaUpdateInfo?> CheckForUpdateAsync(string repo, string? currentVersion, CancellationToken ct = default)
+    public async Task<CpaUpdateCheckResult> CheckForUpdateAsync(string repo, string? currentVersion, CancellationToken ct = default)
     {
         try
         {
@@ -26,57 +26,78 @@ public sealed class CpaUpdateService
 
             using var response = await _httpClient.SendAsync(request, ct);
             if (!response.IsSuccessStatusCode)
-                return null;
+            {
+                return CpaUpdateCheckResult.CheckFailed(
+                    $"获取最新发布信息失败（HTTP {(int)response.StatusCode} {response.ReasonPhrase ?? "Unknown"}）。");
+            }
 
             using var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
             var root = doc.RootElement;
 
-            var tagName = root.GetProperty("tag_name").GetString();
+            if (!root.TryGetProperty("tag_name", out var tagNameElement))
+                return CpaUpdateCheckResult.CheckFailed("最新发布信息缺少 tag_name，无法判断版本。");
+
+            var tagName = tagNameElement.GetString();
             if (string.IsNullOrEmpty(tagName))
-                return null;
+                return CpaUpdateCheckResult.CheckFailed("最新发布信息中的 tag_name 为空，无法判断版本。");
 
             var versionStr = tagName.TrimStart('v');
             if (!Version.TryParse(versionStr, out var newVersion))
-                return null;
+                return CpaUpdateCheckResult.CheckFailed($"最新发布版本号格式无效：{tagName}。");
 
-            if (currentVersion is not null)
+            if (!string.IsNullOrWhiteSpace(currentVersion))
             {
                 var curVersionStr = currentVersion.TrimStart('v');
-                if (Version.TryParse(curVersionStr, out var curVersion) && newVersion <= curVersion)
-                    return null;
+                if (!Version.TryParse(curVersionStr, out var curVersion))
+                    return CpaUpdateCheckResult.CheckFailed($"当前 CPA 版本号格式无效：{currentVersion}。");
+
+                if (newVersion <= curVersion)
+                    return CpaUpdateCheckResult.UpToDate(tagName, newVersion);
             }
 
-            var releaseUrl = root.GetProperty("html_url").GetString() ?? "";
+            var releaseUrl = root.TryGetProperty("html_url", out var releaseUrlElement)
+                ? releaseUrlElement.GetString() ?? string.Empty
+                : string.Empty;
 
             string? assetUrl = null;
             long assetSize = 0;
 
-            foreach (var asset in root.GetProperty("assets").EnumerateArray())
+            if (!root.TryGetProperty("assets", out var assetsElement) || assetsElement.ValueKind != JsonValueKind.Array)
+                return CpaUpdateCheckResult.CheckFailed("最新发布信息缺少 assets 列表，无法定位 Windows 安装包。");
+
+            foreach (var asset in assetsElement.EnumerateArray())
             {
-                var name = asset.GetProperty("name").GetString();
+                if (!asset.TryGetProperty("name", out var nameElement))
+                    continue;
+
+                var name = nameElement.GetString();
                 if (name is not null && name.Contains("windows") && name.Contains("amd64") && name.EndsWith(".zip"))
                 {
-                    assetUrl = asset.GetProperty("browser_download_url").GetString();
-                    assetSize = asset.GetProperty("size").GetInt64();
+                    assetUrl = asset.TryGetProperty("browser_download_url", out var assetUrlElement)
+                        ? assetUrlElement.GetString()
+                        : null;
+                    assetSize = asset.TryGetProperty("size", out var sizeElement) && sizeElement.TryGetInt64(out var size)
+                        ? size
+                        : 0;
                     break;
                 }
             }
 
             if (string.IsNullOrEmpty(assetUrl))
-                return null;
+                return CpaUpdateCheckResult.CheckFailed("最新发布中未找到可用的 Windows amd64 安装包。");
 
-            return new CpaUpdateInfo
+            return CpaUpdateCheckResult.UpdateAvailable(new CpaUpdateInfo
             {
                 TagName = tagName,
                 NewVersion = newVersion,
                 AssetDownloadUrl = assetUrl,
                 AssetSize = assetSize,
                 ReleaseUrl = releaseUrl,
-            };
+            });
         }
         catch (Exception) when (!ct.IsCancellationRequested)
         {
-            return null;
+            return CpaUpdateCheckResult.CheckFailed("检查更新时发生异常，无法获取最新发布信息。");
         }
     }
 

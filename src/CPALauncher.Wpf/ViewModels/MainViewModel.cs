@@ -372,14 +372,20 @@ public class MainViewModel : ViewModelBase
         UpdateStatusText = "正在获取最新版本信息...";
         AddDiagnosticLine("[launcher] 首次安装：正在获取最新版本信息...");
 
-        var info = await _updateService.CheckForUpdateAsync(_settings.CpaGitHubRepo, currentVersion: null);
-        if (info is null)
+        var updateCheck = await _updateService.CheckForUpdateAsync(_settings.CpaGitHubRepo, currentVersion: null);
+        if (updateCheck.Status != CpaUpdateCheckStatus.UpdateAvailable || updateCheck.UpdateInfo is null)
         {
             UpdateStatusText = "";
-            AddDiagnosticLine("[launcher] 无法获取 CPA 版本信息，请稍后手动配置。");
-            MessageBox.Show("无法获取 CPA 版本信息，请检查网络后重试，或手动下载配置。", "获取版本失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+            AddDiagnosticLine($"[launcher] {updateCheck.FailureReason ?? "无法获取 CPA 版本信息，请稍后手动配置。"}");
+            MessageBox.Show(
+                updateCheck.FailureReason ?? "无法获取 CPA 版本信息，请检查网络后重试，或手动下载配置。",
+                "获取版本失败",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
             return;
         }
+
+        var info = updateCheck.UpdateInfo;
 
         // Determine install directory
         var launcherDir = AppContext.BaseDirectory;
@@ -714,15 +720,29 @@ public class MainViewModel : ViewModelBase
         UpdateStatusText = "正在检查 CPA 更新...";
         AddDiagnosticLine("[launcher] 正在检查 CPA 更新...");
 
-        var info = await _updateService.CheckForUpdateAsync(
-            _settings.CpaGitHubRepo, _settings.LastInstalledCpaVersion);
-
-        if (info is null)
+        var currentVersion = ResolveCurrentCpaVersionForUpdateCheck();
+        if (currentVersion is null)
         {
-            UpdateStatusText = "";
-            AddDiagnosticLine("[launcher] CPA 已是最新版本，或无法获取更新信息。");
+            await HandleUnknownCurrentVersionAsync(showMessageBox: false);
             return;
         }
+
+        var updateCheck = await _updateService.CheckForUpdateAsync(_settings.CpaGitHubRepo, currentVersion);
+        if (updateCheck.Status == CpaUpdateCheckStatus.UpToDate)
+        {
+            UpdateStatusText = "";
+            AddDiagnosticLine($"[launcher] CPA 已是最新版本：{updateCheck.LatestTagName}。");
+            return;
+        }
+
+        if (updateCheck.Status == CpaUpdateCheckStatus.CheckFailed || updateCheck.UpdateInfo is null)
+        {
+            UpdateStatusText = "";
+            AddDiagnosticLine($"[launcher] {updateCheck.FailureReason ?? "检查更新失败。"}");
+            return;
+        }
+
+        var info = updateCheck.UpdateInfo;
 
         UpdateStatusText = $"发现新版本：{info.TagName}";
         AddDiagnosticLine($"[launcher] 发现 CPA 新版本：{info.TagName}（{info.AssetSize / 1024.0 / 1024.0:F1} MB）");
@@ -754,16 +774,39 @@ public class MainViewModel : ViewModelBase
         UpdateStatusText = "正在检查 CPA 更新...";
         AddDiagnosticLine("[launcher] 正在检查 CPA 更新...");
 
-        var info = await _updateService.CheckForUpdateAsync(
-            _settings.CpaGitHubRepo, _settings.LastInstalledCpaVersion);
-
-        if (info is null)
+        var currentVersion = ResolveCurrentCpaVersionForUpdateCheck();
+        if (currentVersion is null)
         {
-            UpdateStatusText = "";
-            AddDiagnosticLine("[launcher] CPA 已是最新版本，或无法获取更新信息。");
-            MessageBox.Show("CPA 已是最新版本，或无法获取更新信息。", "检查更新", MessageBoxButton.OK, MessageBoxImage.Information);
+            await HandleUnknownCurrentVersionAsync(showMessageBox: true);
             return;
         }
+
+        var updateCheck = await _updateService.CheckForUpdateAsync(_settings.CpaGitHubRepo, currentVersion);
+        if (updateCheck.Status == CpaUpdateCheckStatus.UpToDate)
+        {
+            UpdateStatusText = "";
+            AddDiagnosticLine($"[launcher] CPA 已是最新版本：{updateCheck.LatestTagName}。");
+            MessageBox.Show(
+                $"CPA 已是最新版本：{updateCheck.LatestTagName}。",
+                "检查更新",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        if (updateCheck.Status == CpaUpdateCheckStatus.CheckFailed || updateCheck.UpdateInfo is null)
+        {
+            UpdateStatusText = "";
+            AddDiagnosticLine($"[launcher] {updateCheck.FailureReason ?? "检查更新失败。"}");
+            MessageBox.Show(
+                updateCheck.FailureReason ?? "检查更新失败。",
+                "检查更新失败",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        var info = updateCheck.UpdateInfo;
 
         UpdateStatusText = $"发现新版本：{info.TagName}";
         AddDiagnosticLine($"[launcher] 发现 CPA 新版本：{info.TagName}（{info.AssetSize / 1024.0 / 1024.0:F1} MB）");
@@ -834,6 +877,83 @@ public class MainViewModel : ViewModelBase
             AddDiagnosticLine($"[launcher] {result.Message}");
             MessageBox.Show(result.Message, "更新失败", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    private async Task HandleUnknownCurrentVersionAsync(bool showMessageBox)
+    {
+        var latestCheck = await _updateService.CheckForUpdateAsync(_settings.CpaGitHubRepo, currentVersion: null);
+        UpdateStatusText = "";
+
+        if (latestCheck.Status == CpaUpdateCheckStatus.UpdateAvailable && latestCheck.UpdateInfo is not null)
+        {
+            var message = $"已获取到最新版本 {latestCheck.UpdateInfo.TagName}，但当前已配置的 CPA 没有可识别版本号，无法自动判断是否需要更新。";
+            AddDiagnosticLine($"[launcher] {message}");
+
+            if (showMessageBox)
+            {
+                MessageBox.Show(
+                    $"{message}\n\n建议先通过启动器重新安装一次，或手动确认当前 CPA 版本后再更新。",
+                    "检查更新",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+
+            return;
+        }
+
+        var failureMessage = latestCheck.FailureReason ?? "当前 CPA 版本号无法识别，且获取最新版本信息失败。";
+        AddDiagnosticLine($"[launcher] {failureMessage}");
+
+        if (showMessageBox)
+        {
+            MessageBox.Show(
+                failureMessage,
+                "检查更新失败",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
+    private string? ResolveCurrentCpaVersionForUpdateCheck()
+    {
+        var configuredVersion = NormalizeVersionString(_settings.LastInstalledCpaVersion);
+        if (!string.IsNullOrWhiteSpace(configuredVersion))
+        {
+            return configuredVersion;
+        }
+
+        if (string.IsNullOrWhiteSpace(_settings.ExecutablePath) || !File.Exists(_settings.ExecutablePath))
+        {
+            return null;
+        }
+
+        try
+        {
+            var fileVersionInfo = FileVersionInfo.GetVersionInfo(_settings.ExecutablePath);
+            return NormalizeVersionString(fileVersionInfo.ProductVersion)
+                ?? NormalizeVersionString(fileVersionInfo.FileVersion);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string? NormalizeVersionString(string? rawVersion)
+    {
+        if (string.IsNullOrWhiteSpace(rawVersion))
+        {
+            return null;
+        }
+
+        var trimmed = rawVersion.Trim();
+        if (Version.TryParse(trimmed.TrimStart('v'), out _))
+        {
+            return trimmed;
+        }
+
+        var simplified = trimmed.Split(['+', '-', ' '], 2, StringSplitOptions.RemoveEmptyEntries)[0];
+        return Version.TryParse(simplified.TrimStart('v'), out _) ? simplified : null;
     }
 
     // --- File browsing ---
