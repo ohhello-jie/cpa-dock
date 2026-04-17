@@ -2,4 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/CPALauncher.Wpf/CPALauncher.Wpf.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CPALauncher.Wpf.Tests/CPALauncher.Wpf.Tests.csproj" />
+  </Folder>
 </Solution>

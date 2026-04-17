@@ -320,7 +320,7 @@ public class MainViewModel : ViewModelBase
 
     private async Task InitializeAsync()
     {
-        if (string.IsNullOrWhiteSpace(_settings.ExecutablePath))
+        if (LauncherSetupDecider.ShouldRunFirstTimeSetup(_settings))
         {
             await RunFirstTimeSetupAsync();
         }
@@ -337,7 +337,7 @@ public class MainViewModel : ViewModelBase
             await StartServiceAsync();
         }
 
-        if (_settings.CheckForUpdatesOnStartup && !string.IsNullOrWhiteSpace(_settings.ExecutablePath))
+        if (_settings.CheckForUpdatesOnStartup && LauncherSetupDecider.HasInstalledExecutable(_settings))
         {
             _ = CheckForUpdateSilentAsync();
         }
@@ -346,8 +346,8 @@ public class MainViewModel : ViewModelBase
     private async Task RunFirstTimeSetupAsync()
     {
         var answer = MessageBox.Show(
-            "检测到首次使用，是否自动下载 CPA？\n\n选择「是」将自动下载最新版本到程序目录。",
-            "首次使用",
+            "检测到当前未安装 CPA，或原有安装路径已失效，是否自动下载 CPA？\n\n选择「是」将自动下载最新版本到程序目录。",
+            "安装 CPA",
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 
@@ -529,7 +529,7 @@ public class MainViewModel : ViewModelBase
         {
             _currentStatus = LauncherStatus.Unconfigured;
             StatusText = "未配置";
-            StatusDetail = "请先配置 CPA 可执行文件和配置文件路径。";
+            StatusDetail = GetUnconfiguredStatusDetail();
             StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(232, 236, 241));
             StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(32, 31, 30));
             return;
@@ -697,9 +697,9 @@ public class MainViewModel : ViewModelBase
 
     private async Task CheckForUpdateAsync()
     {
-        if (string.IsNullOrWhiteSpace(_settings.ExecutablePath))
+        if (!LauncherSetupDecider.HasInstalledExecutable(_settings))
         {
-            MessageBox.Show("请先配置 CPA 可执行文件路径。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("当前未检测到有效的 CPA 可执行文件，请先下载或重新配置路径。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -988,5 +988,27 @@ public class MainViewModel : ViewModelBase
         mergedDicts.Clear();
         mergedDicts.Add(new ResourceDictionary { Source = skinUri });
         mergedDicts.Add(new ResourceDictionary { Source = themeUri });
+    }
+
+    private string GetUnconfiguredStatusDetail()
+    {
+        if (!LauncherSetupDecider.HasInstalledExecutable(_settings))
+        {
+            return string.IsNullOrWhiteSpace(_settings.ExecutablePath)
+                ? "请先下载或配置 CPA 可执行文件路径。"
+                : "当前配置的 CPA 可执行文件不存在，请重新下载或选择正确路径。";
+        }
+
+        if (string.IsNullOrWhiteSpace(_settings.ConfigPath))
+        {
+            return "请先配置 config.yaml 路径。";
+        }
+
+        if (!File.Exists(_settings.ConfigPath))
+        {
+            return "当前配置的 config.yaml 不存在，请重新生成或选择正确路径。";
+        }
+
+        return "请先配置 CPA 可执行文件和配置文件路径。";
     }
 }
