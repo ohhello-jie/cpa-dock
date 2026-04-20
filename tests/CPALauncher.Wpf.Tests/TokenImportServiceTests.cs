@@ -179,6 +179,26 @@ public sealed class TokenImportServiceTests : IDisposable
     }
 
     [Fact]
+    public void ImportJsonFiles_WhenBatchContainsSelfDragAndExternalSameName_AllowsImport()
+    {
+        var service = new TokenImportService();
+        var authDirectory = CreateDirectory("auth");
+        var selfDragFile = Path.Combine(authDirectory, "token.json");
+        File.WriteAllText(selfDragFile, """{"token":"existing"}""");
+        var externalFile = CreateJsonFile("token.json", """{"token":"external"}""");
+
+        var result = service.ImportJsonFiles(authDirectory, [selfDragFile, externalFile]);
+
+        Assert.Equal(TokenImportStatus.Succeeded, result.Status);
+        Assert.Equal(1, result.ImportedCount);
+        Assert.Equal(0, result.FailedCount);
+        Assert.Equal(1, result.SkippedCount);
+        Assert.Equal(["token.json"], result.SkippedFiles);
+        Assert.Empty(result.Errors);
+        Assert.Equal("""{"token":"external"}""", File.ReadAllText(Path.Combine(authDirectory, "token.json")));
+    }
+
+    [Fact]
     public void ImportJsonFiles_WhenAuthDirectoryCannotBePrepared_ReturnsRejectedResult()
     {
         var service = new TokenImportService();
@@ -215,6 +235,26 @@ public sealed class TokenImportServiceTests : IDisposable
         Assert.Equal(["token.json"], result.SkippedFiles);
         Assert.Empty(result.Errors);
         Assert.Equal("""{"token":"existing"}""", File.ReadAllText(sourceFile));
+    }
+
+    [Fact]
+    public void ImportJsonFiles_WhenAllCopiesFail_AreReportedAsFailed()
+    {
+        var service = new TokenImportService();
+        var authDirectory = CreateDirectory("auth");
+        var missingOne = Path.Combine(tempRoot, "missing-one.json");
+        var missingTwo = Path.Combine(tempRoot, "missing-two.json");
+
+        var result = service.ImportJsonFiles(authDirectory, [missingOne, missingTwo]);
+
+        Assert.Equal(TokenImportStatus.Failed, result.Status);
+        Assert.Equal(0, result.ImportedCount);
+        Assert.Equal(2, result.FailedCount);
+        Assert.Equal(0, result.SkippedCount);
+        Assert.Equal(2, result.Errors.Count);
+        Assert.Contains(result.Errors, error => error.Contains("missing-one.json"));
+        Assert.Contains(result.Errors, error => error.Contains("missing-two.json"));
+        Assert.Contains("2 个文件导入失败", result.SummaryMessage);
     }
 
     public void Dispose()

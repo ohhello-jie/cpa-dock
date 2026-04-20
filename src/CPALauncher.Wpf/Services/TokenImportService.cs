@@ -25,8 +25,20 @@ public sealed class TokenImportService
             return TokenImportResult.Rejected("仅支持导入 .json 凭证文件。");
         }
 
-        var duplicateFileNames = files
-            .Select(Path.GetFileName)
+        var targetPathInfos = files
+            .Select(sourceFile => new SourceTargetPair(sourceFile, Path.Combine(authDirectory, Path.GetFileName(sourceFile))))
+            .ToArray();
+
+        var selfDragPairs = targetPathInfos
+            .Where(pair => PathsReferToSameFile(pair.SourceFile, pair.TargetPath))
+            .ToArray();
+
+        var copyPairs = targetPathInfos
+            .Except(selfDragPairs)
+            .ToArray();
+
+        var duplicateFileNames = copyPairs
+            .Select(pair => Path.GetFileName(pair.SourceFile))
             .Where(fileName => !string.IsNullOrWhiteSpace(fileName))
             .Select(fileName => fileName!)
             .GroupBy(fileName => fileName, StringComparer.OrdinalIgnoreCase)
@@ -56,20 +68,21 @@ public sealed class TokenImportService
         var overwrittenFiles = new List<string>();
         var skippedFiles = new List<string>();
 
-        foreach (var sourceFile in files)
+        foreach (var pair in selfDragPairs)
         {
+            var fileName = Path.GetFileName(pair.SourceFile);
+            skippedCount++;
+            skippedFiles.Add(fileName);
+        }
+
+        foreach (var pair in copyPairs)
+        {
+            var sourceFile = pair.SourceFile;
+            var targetPath = pair.TargetPath;
             var fileName = Path.GetFileName(sourceFile);
-            var targetPath = Path.Combine(authDirectory, fileName);
 
             try
             {
-                if (PathsReferToSameFile(sourceFile, targetPath))
-                {
-                    skippedCount++;
-                    skippedFiles.Add(fileName);
-                    continue;
-                }
-
                 var willOverwrite = File.Exists(targetPath);
                 File.Copy(sourceFile, targetPath, overwrite: true);
 
@@ -161,6 +174,8 @@ public sealed class TokenImportService
 
     private static string BuildDuplicateFileNameMessage(IEnumerable<string> duplicateFileNames)
         => $"导入批次中存在重复的目标文件名：{string.Join("、", duplicateFileNames)}。";
+
+    private sealed record SourceTargetPair(string SourceFile, string TargetPath);
 }
 
 public enum TokenImportStatus
@@ -182,11 +197,11 @@ public sealed class TokenImportResult
 
     public int SkippedCount { get; init; }
 
-    public List<string> Errors { get; init; } = [];
+    public IReadOnlyList<string> Errors { get; init; } = [];
 
-    public List<string> OverwrittenFiles { get; init; } = [];
+    public IReadOnlyList<string> OverwrittenFiles { get; init; } = [];
 
-    public List<string> SkippedFiles { get; init; } = [];
+    public IReadOnlyList<string> SkippedFiles { get; init; } = [];
 
     public string SummaryMessage { get; init; } = string.Empty;
 
