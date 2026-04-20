@@ -488,3 +488,6 @@ _decompiled2/
 # Claude Code
 .claude/
 
+# Local git worktrees
+.worktrees/
+
