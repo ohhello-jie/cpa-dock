@@ -586,12 +586,7 @@ public class MainViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(_settings.ExecutablePath) || string.IsNullOrWhiteSpace(_settings.ConfigPath))
         {
-            _runtimeInfo = null;
-            ManagementUrl = "";
-            ProbeUrl = "";
-            ConfigDirectory = "";
-            LogDirectory = "";
-            AuthDirectory = "";
+            ClearDerivedConfigurationState();
             return;
         }
 
@@ -606,7 +601,7 @@ public class MainViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            _runtimeInfo = null;
+            ClearDerivedConfigurationState();
             AddDiagnosticLine($"[launcher] 配置检查失败：{ex.Message}");
         }
     }
@@ -1183,7 +1178,7 @@ public class MainViewModel : ViewModelBase
 
         if (result.Status != TokenImportStatus.Rejected)
         {
-            ShowImportNotice(result.SummaryMessage);
+            ShowImportNotice(BuildImportNoticeText(result));
         }
         else if (result.Errors.Count > 0)
         {
@@ -1210,6 +1205,16 @@ public class MainViewModel : ViewModelBase
             DiagnosticLines.RemoveAt(0);
     }
 
+    private void ClearDerivedConfigurationState()
+    {
+        _runtimeInfo = null;
+        ManagementUrl = "";
+        ProbeUrl = "";
+        ConfigDirectory = "";
+        LogDirectory = "";
+        AuthDirectory = "";
+    }
+
     private void ShowImportNotice(string text)
     {
         ImportNoticeText = text;
@@ -1223,6 +1228,18 @@ public class MainViewModel : ViewModelBase
         _importNoticeTimer.Stop();
         IsImportNoticeVisible = false;
         ImportNoticeText = "";
+    }
+
+    private static string BuildImportNoticeText(TokenImportResult result)
+    {
+        if (result.OverwrittenFiles.Count == 0)
+        {
+            return result.SummaryMessage;
+        }
+
+        return string.IsNullOrWhiteSpace(result.SummaryMessage)
+            ? $"已覆盖同名凭证：{string.Join("、", result.OverwrittenFiles)}。"
+            : $"{result.SummaryMessage}（已覆盖同名凭证：{string.Join("、", result.OverwrittenFiles)}）";
     }
 
     // --- Window management ---

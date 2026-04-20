@@ -44,6 +44,37 @@ public sealed class TokenDropEvaluator
             };
         }
 
+        var targetPathInfos = filePaths
+            .Select(sourceFile => new SourceTargetPair(sourceFile, Path.Combine(authDirectory, Path.GetFileName(sourceFile))))
+            .ToArray();
+
+        var selfDragPairs = targetPathInfos
+            .Where(pair => PathsReferToSameFile(pair.SourceFile, pair.TargetPath))
+            .ToArray();
+
+        var copyPairs = targetPathInfos
+            .Except(selfDragPairs)
+            .ToArray();
+
+        var duplicateTargetFileNames = copyPairs
+            .Select(pair => Path.GetFileName(pair.TargetPath))
+            .Where(fileName => !string.IsNullOrWhiteSpace(fileName))
+            .Select(fileName => fileName!)
+            .GroupBy(fileName => fileName, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToArray();
+
+        if (duplicateTargetFileNames.Length > 0)
+        {
+            return new TokenDropEvaluationResult
+            {
+                IsValid = false,
+                Title = "拖拽内容存在重复的目标文件名",
+                Subtitle = $"请先去重后再导入：{string.Join("、", duplicateTargetFileNames)}。",
+            };
+        }
+
         return new TokenDropEvaluationResult
         {
             IsValid = true,
@@ -55,6 +86,23 @@ public sealed class TokenDropEvaluator
 
     private static bool IsInvalidJsonFile(string filePath)
         => string.IsNullOrWhiteSpace(filePath) || Directory.Exists(filePath) || !string.Equals(Path.GetExtension(filePath), ".json", StringComparison.OrdinalIgnoreCase);
+
+    private static bool PathsReferToSameFile(string sourceFile, string targetPath)
+    {
+        try
+        {
+            return string.Equals(
+                Path.GetFullPath(sourceFile),
+                Path.GetFullPath(targetPath),
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private sealed record SourceTargetPair(string SourceFile, string TargetPath);
 }
 
 public sealed class TokenDropEvaluationResult

@@ -71,11 +71,51 @@ public sealed class TokenDropEvaluatorTests : IDisposable
         Assert.Equal(authDirectory, result.Subtitle);
     }
 
+    [Fact]
+    public void Evaluate_WhenSelfDragAndExternalSameNameAreMixed_ReturnsAcceptableResult()
+    {
+        var evaluator = new TokenDropEvaluator();
+        var authDirectory = Directory.CreateDirectory(Path.Combine(tempRoot, "auth")).FullName;
+        var selfDragFile = Path.Combine(authDirectory, "token.json");
+        File.WriteAllText(selfDragFile, """{"token":"existing"}""");
+        var externalFile = CreateJsonFile(Path.Combine(tempRoot, "source"), "token.json");
+
+        var result = evaluator.Evaluate(authDirectory, [selfDragFile, externalFile]);
+
+        Assert.True(result.IsValid);
+        Assert.Equal("松手导入到当前 CPA 认证目录", result.Title);
+        Assert.Equal(authDirectory, result.TargetDirectory);
+    }
+
+    [Fact]
+    public void Evaluate_WhenTwoExternalFilesResolveToSameTargetName_ReturnsRejectedResult()
+    {
+        var evaluator = new TokenDropEvaluator();
+        var authDirectory = Directory.CreateDirectory(Path.Combine(tempRoot, "auth")).FullName;
+        var firstFile = CreateJsonFile(Path.Combine(tempRoot, "source-one"), "token.json");
+        var secondFile = CreateJsonFile(Path.Combine(tempRoot, "source-two"), "token.json");
+
+        var result = evaluator.Evaluate(authDirectory, [firstFile, secondFile]);
+
+        Assert.False(result.IsValid);
+        Assert.Equal("拖拽内容存在重复的目标文件名", result.Title);
+        Assert.Contains("token.json", result.Subtitle);
+        Assert.Null(result.TargetDirectory);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(tempRoot))
         {
             Directory.Delete(tempRoot, recursive: true);
         }
+    }
+
+    private string CreateJsonFile(string directory, string fileName)
+    {
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, fileName);
+        File.WriteAllText(path, """{"token":"value"}""");
+        return path;
     }
 }
