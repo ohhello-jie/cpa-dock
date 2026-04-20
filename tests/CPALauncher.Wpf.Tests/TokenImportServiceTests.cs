@@ -52,8 +52,10 @@ public sealed class TokenImportServiceTests : IDisposable
         Assert.Equal("""
             {"token":"alpha"}
             """, File.ReadAllText(Path.Combine(authDirectory, "one.json")));
+        Assert.Equal(TokenImportStatus.Succeeded, result.Status);
         Assert.Equal(1, result.ImportedCount);
         Assert.Equal(0, result.FailedCount);
+        Assert.Equal(0, result.SkippedCount);
         Assert.Empty(result.OverwrittenFiles);
         Assert.Empty(result.Errors);
         Assert.Contains("已导入 1 个凭证文件", result.SummaryMessage);
@@ -69,8 +71,10 @@ public sealed class TokenImportServiceTests : IDisposable
 
         var result = service.ImportJsonFiles(authDirectory, [firstFile, secondFile]);
 
+        Assert.Equal(TokenImportStatus.Succeeded, result.Status);
         Assert.Equal(2, result.ImportedCount);
         Assert.Equal(0, result.FailedCount);
+        Assert.Equal(0, result.SkippedCount);
         Assert.Empty(result.OverwrittenFiles);
         Assert.Empty(result.Errors);
         Assert.True(File.Exists(Path.Combine(authDirectory, "first.json")));
@@ -87,8 +91,10 @@ public sealed class TokenImportServiceTests : IDisposable
 
         var result = service.ImportJsonFiles(authDirectory, [sourceFile]);
 
+        Assert.Equal(TokenImportStatus.Succeeded, result.Status);
         Assert.Equal(1, result.ImportedCount);
         Assert.Equal(0, result.FailedCount);
+        Assert.Equal(0, result.SkippedCount);
         Assert.Equal(["token.json"], result.OverwrittenFiles);
         Assert.Equal("""{"token":"new"}""", File.ReadAllText(Path.Combine(authDirectory, "token.json")));
         Assert.Empty(result.Errors);
@@ -104,8 +110,10 @@ public sealed class TokenImportServiceTests : IDisposable
 
         var result = service.ImportJsonFiles(authDirectory, [jsonFile, textFile]);
 
+        Assert.Equal(TokenImportStatus.Rejected, result.Status);
         Assert.Equal(0, result.ImportedCount);
         Assert.Equal(0, result.FailedCount);
+        Assert.Equal(0, result.SkippedCount);
         Assert.Equal("仅支持导入 .json 凭证文件。", result.SummaryMessage);
         Assert.Equal(["仅支持导入 .json 凭证文件。"], result.Errors);
         Assert.False(File.Exists(Path.Combine(authDirectory, "one.json")));
@@ -122,8 +130,10 @@ public sealed class TokenImportServiceTests : IDisposable
 
         var result = service.ImportJsonFiles(authDirectory, [goodFile, missingFile]);
 
+        Assert.Equal(TokenImportStatus.PartiallySucceeded, result.Status);
         Assert.Equal(1, result.ImportedCount);
         Assert.Equal(1, result.FailedCount);
+        Assert.Equal(0, result.SkippedCount);
         Assert.Single(result.Errors);
         Assert.True(File.Exists(Path.Combine(authDirectory, "good.json")));
         Assert.Equal("已导入 1 个凭证文件，1 个文件失败。", result.SummaryMessage);
@@ -140,10 +150,71 @@ public sealed class TokenImportServiceTests : IDisposable
 
         var result = service.ImportJsonFiles(authDirectory, [jsonFile, folder]);
 
+        Assert.Equal(TokenImportStatus.Rejected, result.Status);
         Assert.Equal(0, result.ImportedCount);
         Assert.Equal(0, result.FailedCount);
+        Assert.Equal(0, result.SkippedCount);
         Assert.Equal("仅支持导入 .json 凭证文件。", result.SummaryMessage);
         Assert.Equal(["仅支持导入 .json 凭证文件。"], result.Errors);
+    }
+
+    [Fact]
+    public void ImportJsonFiles_WhenBatchContainsDuplicateFileNames_RejectsEntireBatch()
+    {
+        var service = new TokenImportService();
+        var authDirectory = Path.Combine(tempRoot, "auth");
+        var firstFile = CreateJsonFile("token.json", """{"token":"first"}""");
+        var secondFile = CreateJsonFile("token.json", """{"token":"second"}""");
+
+        var result = service.ImportJsonFiles(authDirectory, [firstFile, secondFile]);
+
+        Assert.Equal(TokenImportStatus.Rejected, result.Status);
+        Assert.Equal(0, result.ImportedCount);
+        Assert.Equal(0, result.FailedCount);
+        Assert.Equal(0, result.SkippedCount);
+        Assert.Empty(result.OverwrittenFiles);
+        Assert.Contains("重复的目标文件名", result.SummaryMessage);
+        Assert.Equal(result.SummaryMessage, result.Errors[0]);
+        Assert.False(Directory.Exists(authDirectory));
+    }
+
+    [Fact]
+    public void ImportJsonFiles_WhenAuthDirectoryCannotBePrepared_ReturnsRejectedResult()
+    {
+        var service = new TokenImportService();
+        var parentDirectory = CreateDirectory("prepare-failure");
+        var authDirectory = Path.Combine(parentDirectory, "locked-target");
+        File.WriteAllText(authDirectory, "not a directory");
+        var sourceFile = CreateJsonFile("one.json");
+
+        var result = service.ImportJsonFiles(authDirectory, [sourceFile]);
+
+        Assert.Equal(TokenImportStatus.Rejected, result.Status);
+        Assert.Equal(0, result.ImportedCount);
+        Assert.Equal(0, result.FailedCount);
+        Assert.Equal(0, result.SkippedCount);
+        Assert.Contains("创建认证目录失败", result.SummaryMessage);
+        Assert.Equal(result.SummaryMessage, result.Errors[0]);
+    }
+
+    [Fact]
+    public void ImportJsonFiles_WhenSourceAndTargetAreSamePath_DoesNotCountAsSuccess()
+    {
+        var service = new TokenImportService();
+        var authDirectory = CreateDirectory("auth");
+        var sourceFile = Path.Combine(authDirectory, "token.json");
+        File.WriteAllText(sourceFile, """{"token":"existing"}""");
+
+        var result = service.ImportJsonFiles(authDirectory, [sourceFile]);
+
+        Assert.Equal(TokenImportStatus.NoOp, result.Status);
+        Assert.Equal(0, result.ImportedCount);
+        Assert.Equal(0, result.FailedCount);
+        Assert.Equal(1, result.SkippedCount);
+        Assert.Single(result.SkippedFiles);
+        Assert.Equal(["token.json"], result.SkippedFiles);
+        Assert.Empty(result.Errors);
+        Assert.Equal("""{"token":"existing"}""", File.ReadAllText(sourceFile));
     }
 
     public void Dispose()
