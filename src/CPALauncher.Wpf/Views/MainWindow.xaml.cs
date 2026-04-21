@@ -87,13 +87,13 @@ public partial class MainWindow
         e.Handled = true;
     }
 
-    private void OnDrop(object sender, DragEventArgs e)
+    private async void OnDrop(object sender, DragEventArgs e)
     {
         CancelScheduledTokenDropPreviewClear();
 
         if (DataContext is MainViewModel vm)
         {
-            vm.ImportDroppedTokens(GetDroppedFilePaths(e));
+            await vm.ImportDroppedTokensAsync(GetDroppedFilePaths(e));
         }
 
         e.Handled = true;

@@ -14,6 +14,12 @@ namespace CPALauncher.ViewModels;
 
 public class MainViewModel : ViewModelBase
 {
+    private const string ImportRestartingNotice = "已导入凭证，正在自动重启 CPA 以使其生效";
+    private const string ImportRestartedNotice = "已导入凭证，CPA 已自动重启并生效";
+    private const string ImportRestartFailedNotice = "凭证已导入，但自动重启失败，请手动重启 CPA";
+    private const string ImportExternalRestartNotice = "已导入凭证，如需立即生效，请手动重启当前 CPA";
+    private const string ImportStoppedNotice = "已导入凭证，将在下次启动 CPA 时生效";
+
     private readonly CpaProcessManager _processManager = new();
     private readonly CpaConfigInspector _configInspector = new();
     private readonly LauncherSettingsStore _settingsStore = new();
@@ -349,7 +355,11 @@ public class MainViewModel : ViewModelBase
     public ICommand ShowWindowCommand { get; }
     public ICommand ExitApplicationCommand { get; }
 
-    public MainViewModel()
+    public MainViewModel() : this(skipInitialization: false)
+    {
+    }
+
+    protected MainViewModel(bool skipInitialization)
     {
         _updateService = new CpaUpdateService(_downloadHttpClient);
 
@@ -383,7 +393,10 @@ public class MainViewModel : ViewModelBase
 
         // Load settings and initialize
         LoadSettings();
-        _ = InitializeAsync();
+        if (!skipInitialization)
+        {
+            _ = InitializeAsync();
+        }
     }
 
     private async Task InitializeAsync()
@@ -1155,7 +1168,17 @@ public class MainViewModel : ViewModelBase
         TokenDropAccentBrush = new SolidColorBrush(Color.FromRgb(99, 102, 241));
     }
 
+    public Task ImportDroppedTokensAsync(IReadOnlyList<string> filePaths)
+    {
+        return ImportDroppedTokensCoreAsync(filePaths);
+    }
+
     public void ImportDroppedTokens(IReadOnlyList<string> filePaths)
+    {
+        _ = ImportDroppedTokensAsync(filePaths);
+    }
+
+    private async Task ImportDroppedTokensCoreAsync(IReadOnlyList<string> filePaths)
     {
         var result = _tokenImportService.ImportJsonFiles(_authDirectory, filePaths);
 
@@ -1164,6 +1187,10 @@ public class MainViewModel : ViewModelBase
         if (result.Status != TokenImportStatus.Rejected)
         {
             AddDiagnosticLine($"[token] 目标目录：{_authDirectory}");
+            if (!string.IsNullOrWhiteSpace(result.SummaryMessage))
+            {
+                AddDiagnosticLine($"[token] {result.SummaryMessage}");
+            }
         }
 
         if (result.OverwrittenFiles.Count > 0)
@@ -1179,6 +1206,7 @@ public class MainViewModel : ViewModelBase
         if (result.Status != TokenImportStatus.Rejected)
         {
             ShowImportNotice(BuildImportNoticeText(result));
+            await HandleTokenImportActivationAsync(result);
         }
         else if (result.Errors.Count > 0)
         {
@@ -1240,6 +1268,95 @@ public class MainViewModel : ViewModelBase
         return string.IsNullOrWhiteSpace(result.SummaryMessage)
             ? $"已覆盖同名凭证：{string.Join("、", result.OverwrittenFiles)}。"
             : $"{result.SummaryMessage}（已覆盖同名凭证：{string.Join("、", result.OverwrittenFiles)}）";
+    }
+
+    protected virtual async Task HandleTokenImportActivationAsync(TokenImportResult result)
+    {
+        if (!ShouldActivateImportedTokens(result))
+        {
+            return;
+        }
+
+        if (IsManagedServiceRunningForActivation())
+        {
+            AddDiagnosticLine("[launcher] 检测到当前 CPA 由启动器托管，正在自动重启以使凭证生效");
+            ShowImportNotice(ImportRestartingNotice);
+
+            var restartSucceeded = await RestartManagedServiceAfterTokenImportAsync();
+            if (restartSucceeded)
+            {
+                AddDiagnosticLine("[launcher] 凭证导入后自动重启完成");
+                ShowImportNotice(ImportRestartedNotice);
+            }
+            else
+            {
+                AddDiagnosticLine("[launcher] 凭证导入后自动重启失败，请手动重启 CPA");
+                ShowImportNotice(ImportRestartFailedNotice);
+            }
+
+            return;
+        }
+
+        if (IsExternallyRunningForActivation())
+        {
+            AddDiagnosticLine("[launcher] 当前 CPA 为外部运行，未自动重启；如需立即生效请手动重启");
+            ShowImportNotice(ImportExternalRestartNotice);
+            return;
+        }
+
+        AddDiagnosticLine("[launcher] 当前 CPA 未运行，导入的凭证将在下次启动时生效");
+        ShowImportNotice(ImportStoppedNotice);
+    }
+
+    protected virtual async Task<bool> RestartManagedServiceAfterTokenImportAsync()
+    {
+        try
+        {
+            await StopServiceAsync();
+            if (_currentStatus != LauncherStatus.Stopped)
+            {
+                AddDiagnosticLine("[launcher] 凭证导入后自动重启失败：停止 CPA 后未进入已停止状态");
+                return false;
+            }
+
+            await StartServiceAsync();
+            await RefreshAsync();
+
+            if (IsManagedServiceRunningForActivation())
+            {
+                return true;
+            }
+
+            AddDiagnosticLine("[launcher] 凭证导入后自动重启失败：CPA 启动后未进入托管运行状态");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            AddDiagnosticLine($"[launcher] 凭证导入后自动重启失败：{ex.Message}");
+            return false;
+        }
+    }
+
+    private static bool ShouldActivateImportedTokens(TokenImportResult result)
+    {
+        return result.ImportedCount > 0
+               && (result.Status == TokenImportStatus.Succeeded
+                   || result.Status == TokenImportStatus.PartiallySucceeded);
+    }
+
+    private bool IsManagedServiceRunningForActivation()
+    {
+        return IsManagedProcessRunningForActivation() && _currentStatus == LauncherStatus.Running;
+    }
+
+    private bool IsExternallyRunningForActivation()
+    {
+        return !IsManagedProcessRunningForActivation() && _currentStatus == LauncherStatus.Running;
+    }
+
+    protected virtual bool IsManagedProcessRunningForActivation()
+    {
+        return _processManager.IsManagedProcessRunning;
     }
 
     // --- Window management ---
