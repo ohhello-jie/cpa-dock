@@ -75,6 +75,54 @@ public partial class MainWindow
         }
     }
 
+    private void OnDragEnter(object sender, DragEventArgs e) => HandleTokenDragPreview(e);
+
+    private void OnDragOver(object sender, DragEventArgs e) => HandleTokenDragPreview(e);
+
+    private void OnDragLeave(object sender, DragEventArgs e)
+    {
+        (DataContext as MainViewModel)?.ClearTokenDropPreview();
+        e.Handled = true;
+    }
+
+    private void OnDrop(object sender, DragEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            vm.ImportDroppedTokens(GetDroppedFilePaths(e));
+        }
+
+        e.Handled = true;
+    }
+
+    private void HandleTokenDragPreview(DragEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            var filePaths = GetDroppedFilePaths(e);
+            vm.PreviewTokenDrop(filePaths);
+            e.Effects = vm.IsTokenDropValid ? DragDropEffects.Copy : DragDropEffects.None;
+        }
+        else
+        {
+            e.Effects = DragDropEffects.None;
+        }
+
+        e.Handled = true;
+    }
+
+    private static IReadOnlyList<string> GetDroppedFilePaths(DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            return Array.Empty<string>();
+        }
+
+        return e.Data.GetData(DataFormats.FileDrop) is string[] filePaths
+            ? filePaths
+            : Array.Empty<string>();
+    }
+
     private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
     {
         for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)

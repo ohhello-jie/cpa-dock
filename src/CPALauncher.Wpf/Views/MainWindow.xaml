@@ -9,12 +9,22 @@
            WindowStartupLocation="CenterScreen"
            UseLayoutRounding="True"
            SnapsToDevicePixels="True"
-           Background="{DynamicResource RegionBrush}">
+           Background="{DynamicResource RegionBrush}"
+           AllowDrop="True"
+           DragEnter="OnDragEnter"
+           DragOver="OnDragOver"
+           DragLeave="OnDragLeave"
+           Drop="OnDrop">
+
+    <hc:Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </hc:Window.Resources>
 
     <hc:Window.DataContext>
         <vm:MainViewModel/>
     </hc:Window.DataContext>
 
+    <Grid>
         <Grid Margin="28,24,28,20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -191,7 +201,7 @@
                                 <RowDefinition Height="22"/>
                                 <RowDefinition Height="22"/>
                                 <RowDefinition Height="22"/>
-                                <RowDefinition Height="22"/>
+                                <RowDefinition Height="36"/>
                                 <RowDefinition Height="28"/>
                             </Grid.RowDefinitions>
 
@@ -221,9 +231,17 @@
 
                             <TextBlock Grid.Row="4" Grid.Column="0" Text="认证目录" FontSize="11"
                                        Foreground="{DynamicResource ThirdlyTextBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding AuthDirectory}" FontSize="11"
-                                       Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center"
-                                       TextTrimming="CharacterEllipsis" ToolTip="{Binding AuthDirectory}"/>
+                            <StackPanel Grid.Row="4" Grid.Column="1">
+                                <TextBlock Text="{Binding AuthDirectory}" FontSize="11"
+                                           Foreground="{DynamicResource PrimaryTextBrush}"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" ToolTip="{Binding AuthDirectory}"/>
+                                <TextBlock Text="支持将 .json 凭证拖入窗口直接导入"
+                                           FontSize="10" Margin="0,2,0,0"
+                                           Foreground="{DynamicResource ThirdlyTextBrush}"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTip="支持将 .json 凭证拖入窗口直接导入"/>
+                            </StackPanel>
 
                             <TextBlock Grid.Row="5" Grid.Column="0" Text="管理密钥" FontSize="11"
                                        Foreground="{DynamicResource ThirdlyTextBrush}" VerticalAlignment="Center"/>
@@ -330,4 +348,67 @@
                 </DockPanel>
             </Border>
         </Grid>
+
+        <Border HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="20,16,20,0"
+                Padding="14,10"
+                CornerRadius="10"
+                Background="{DynamicResource SecondaryRegionBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                Opacity="0.98"
+                Panel.ZIndex="20"
+                IsHitTestVisible="False"
+                Visibility="{Binding IsImportNoticeVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="18" ShadowDepth="2" Opacity="0.18"/>
+            </Border.Effect>
+            <TextBlock Text="{Binding ImportNoticeText}"
+                       FontSize="12"
+                       Foreground="{DynamicResource PrimaryTextBrush}"
+                       TextWrapping="Wrap"
+                       MaxWidth="320"/>
+        </Border>
+
+        <Grid Panel.ZIndex="15"
+              Background="#66000000"
+              IsHitTestVisible="False"
+              Visibility="{Binding IsTokenDropOverlayVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Border HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Width="520"
+                    MaxWidth="760"
+                    Padding="28,24"
+                    CornerRadius="18"
+                    Background="{DynamicResource SecondaryRegionBrush}"
+                    BorderThickness="2"
+                    BorderBrush="{Binding TokenDropAccentBrush}">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="28" ShadowDepth="0" Opacity="0.28"/>
+                </Border.Effect>
+                <StackPanel HorizontalAlignment="Center">
+                    <Border Width="54" Height="54" CornerRadius="27"
+                            Background="{Binding TokenDropAccentBrush}"
+                            HorizontalAlignment="Center"
+                            Margin="0,0,0,14"
+                            Opacity="0.95"/>
+                    <TextBlock Text="{Binding TokenDropTitle}"
+                               FontSize="22"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource PrimaryTextBrush}"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               Margin="0,0,0,8"/>
+                    <TextBlock Text="{Binding TokenDropSubtitle}"
+                               FontSize="13"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               MaxWidth="420"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
 </hc:Window>
