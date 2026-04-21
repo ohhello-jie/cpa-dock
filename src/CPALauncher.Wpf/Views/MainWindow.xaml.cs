@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using CPALauncher.ViewModels;
 using Hardcodet.Wpf.TaskbarNotification;
 
@@ -13,6 +14,7 @@ public partial class MainWindow
 {
     private TaskbarIcon? _trayIcon;
     private bool _isExiting;
+    private DispatcherTimer? _dragLeaveClearTimer;
 
     public MainWindow()
     {
@@ -81,12 +83,14 @@ public partial class MainWindow
 
     private void OnDragLeave(object sender, DragEventArgs e)
     {
-        (DataContext as MainViewModel)?.ClearTokenDropPreview();
+        ScheduleTokenDropPreviewClear();
         e.Handled = true;
     }
 
     private void OnDrop(object sender, DragEventArgs e)
     {
+        CancelScheduledTokenDropPreviewClear();
+
         if (DataContext is MainViewModel vm)
         {
             vm.ImportDroppedTokens(GetDroppedFilePaths(e));
@@ -97,6 +101,8 @@ public partial class MainWindow
 
     private void HandleTokenDragPreview(DragEventArgs e)
     {
+        CancelScheduledTokenDropPreviewClear();
+
         if (DataContext is MainViewModel vm)
         {
             var filePaths = GetDroppedFilePaths(e);
@@ -109,6 +115,32 @@ public partial class MainWindow
         }
 
         e.Handled = true;
+    }
+
+    private void ScheduleTokenDropPreviewClear()
+    {
+        if (_dragLeaveClearTimer == null)
+        {
+            _dragLeaveClearTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromMilliseconds(80),
+            };
+            _dragLeaveClearTimer.Tick += OnDragLeaveClearTimerTick;
+        }
+
+        _dragLeaveClearTimer.Stop();
+        _dragLeaveClearTimer.Start();
+    }
+
+    private void CancelScheduledTokenDropPreviewClear()
+    {
+        _dragLeaveClearTimer?.Stop();
+    }
+
+    private void OnDragLeaveClearTimerTick(object? sender, EventArgs e)
+    {
+        _dragLeaveClearTimer?.Stop();
+        (DataContext as MainViewModel)?.ClearTokenDropPreview();
     }
 
     private static IReadOnlyList<string> GetDroppedFilePaths(DragEventArgs e)
