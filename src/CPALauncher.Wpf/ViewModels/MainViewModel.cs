@@ -20,8 +20,11 @@ public class MainViewModel : ViewModelBase
     private readonly WindowsStartupManager _startupManager = new();
     private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(2) };
     private readonly HttpClient _downloadHttpClient = new() { Timeout = TimeSpan.FromMinutes(10) };
+    private readonly TokenImportService _tokenImportService = new();
+    private readonly TokenDropEvaluator _tokenDropEvaluator = new();
     private readonly CpaUpdateService _updateService;
     private readonly DispatcherTimer _refreshTimer;
+    private readonly DispatcherTimer _importNoticeTimer;
 
     private LauncherStatus _currentStatus = LauncherStatus.Unconfigured;
     private LauncherSettings _settings = new();
@@ -52,6 +55,13 @@ public class MainViewModel : ViewModelBase
     private string _updateStatusText = "";
     private int _updateProgress;
     private bool _isUpdateInProgress;
+    private bool _isTokenDropOverlayVisible;
+    private bool _isTokenDropValid;
+    private string _tokenDropTitle = "";
+    private string _tokenDropSubtitle = "";
+    private Brush _tokenDropAccentBrush = new SolidColorBrush(Color.FromRgb(99, 102, 241));
+    private bool _isImportNoticeVisible;
+    private string _importNoticeText = "";
 
     public ObservableCollection<string> DiagnosticLines { get; } = new();
 
@@ -273,6 +283,48 @@ public class MainViewModel : ViewModelBase
         set => SetProperty(ref _isUpdateInProgress, value);
     }
 
+    public bool IsTokenDropOverlayVisible
+    {
+        get => _isTokenDropOverlayVisible;
+        set => SetProperty(ref _isTokenDropOverlayVisible, value);
+    }
+
+    public bool IsTokenDropValid
+    {
+        get => _isTokenDropValid;
+        set => SetProperty(ref _isTokenDropValid, value);
+    }
+
+    public string TokenDropTitle
+    {
+        get => _tokenDropTitle;
+        set => SetProperty(ref _tokenDropTitle, value);
+    }
+
+    public string TokenDropSubtitle
+    {
+        get => _tokenDropSubtitle;
+        set => SetProperty(ref _tokenDropSubtitle, value);
+    }
+
+    public Brush TokenDropAccentBrush
+    {
+        get => _tokenDropAccentBrush;
+        set => SetProperty(ref _tokenDropAccentBrush, value);
+    }
+
+    public bool IsImportNoticeVisible
+    {
+        get => _isImportNoticeVisible;
+        set => SetProperty(ref _isImportNoticeVisible, value);
+    }
+
+    public string ImportNoticeText
+    {
+        get => _importNoticeText;
+        set => SetProperty(ref _importNoticeText, value);
+    }
+
     public Visibility UpdateProgressVisibility =>
         _isUpdateInProgress ? Visibility.Visible : Visibility.Collapsed;
 
@@ -326,6 +378,8 @@ public class MainViewModel : ViewModelBase
         // Setup refresh timer
         _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(2500) };
         _refreshTimer.Tick += async (s, e) => await RefreshAsync();
+        _importNoticeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(2500) };
+        _importNoticeTimer.Tick += (_, _) => HideImportNotice();
 
         // Load settings and initialize
         LoadSettings();
@@ -532,12 +586,7 @@ public class MainViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(_settings.ExecutablePath) || string.IsNullOrWhiteSpace(_settings.ConfigPath))
         {
-            _runtimeInfo = null;
-            ManagementUrl = "";
-            ProbeUrl = "";
-            ConfigDirectory = "";
-            LogDirectory = "";
-            AuthDirectory = "";
+            ClearDerivedConfigurationState();
             return;
         }
 
@@ -552,7 +601,7 @@ public class MainViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            _runtimeInfo = null;
+            ClearDerivedConfigurationState();
             AddDiagnosticLine($"[launcher] 配置检查失败：{ex.Message}");
         }
     }
@@ -1084,6 +1133,59 @@ public class MainViewModel : ViewModelBase
         return Task.CompletedTask;
     }
 
+    public void PreviewTokenDrop(IReadOnlyList<string> filePaths)
+    {
+        var result = _tokenDropEvaluator.Evaluate(_authDirectory, filePaths);
+
+        IsTokenDropOverlayVisible = true;
+        IsTokenDropValid = result.IsValid;
+        TokenDropTitle = result.Title;
+        TokenDropSubtitle = result.Subtitle;
+        TokenDropAccentBrush = result.IsValid
+            ? new SolidColorBrush(Color.FromRgb(34, 197, 94))
+            : new SolidColorBrush(Color.FromRgb(239, 68, 68));
+    }
+
+    public void ClearTokenDropPreview()
+    {
+        IsTokenDropOverlayVisible = false;
+        IsTokenDropValid = false;
+        TokenDropTitle = "";
+        TokenDropSubtitle = "";
+        TokenDropAccentBrush = new SolidColorBrush(Color.FromRgb(99, 102, 241));
+    }
+
+    public void ImportDroppedTokens(IReadOnlyList<string> filePaths)
+    {
+        var result = _tokenImportService.ImportJsonFiles(_authDirectory, filePaths);
+
+        ClearTokenDropPreview();
+
+        if (result.Status != TokenImportStatus.Rejected)
+        {
+            AddDiagnosticLine($"[token] 目标目录：{_authDirectory}");
+        }
+
+        if (result.OverwrittenFiles.Count > 0)
+        {
+            AddDiagnosticLine($"[token] 已覆盖同名凭证：{string.Join("、", result.OverwrittenFiles)}");
+        }
+
+        foreach (var error in result.Errors)
+        {
+            AddDiagnosticLine($"[token] 导入凭证失败：{error}");
+        }
+
+        if (result.Status != TokenImportStatus.Rejected)
+        {
+            ShowImportNotice(BuildImportNoticeText(result));
+        }
+        else if (result.Errors.Count > 0)
+        {
+            ShowImportNotice(result.Errors[0]);
+        }
+    }
+
     // --- Events ---
 
     private void OnProcessOutput(object? sender, string line)
@@ -1101,6 +1203,43 @@ public class MainViewModel : ViewModelBase
         DiagnosticLines.Add(line);
         while (DiagnosticLines.Count > 400)
             DiagnosticLines.RemoveAt(0);
+    }
+
+    private void ClearDerivedConfigurationState()
+    {
+        _runtimeInfo = null;
+        ManagementUrl = "";
+        ProbeUrl = "";
+        ConfigDirectory = "";
+        LogDirectory = "";
+        AuthDirectory = "";
+    }
+
+    private void ShowImportNotice(string text)
+    {
+        ImportNoticeText = text;
+        IsImportNoticeVisible = true;
+        _importNoticeTimer.Stop();
+        _importNoticeTimer.Start();
+    }
+
+    private void HideImportNotice()
+    {
+        _importNoticeTimer.Stop();
+        IsImportNoticeVisible = false;
+        ImportNoticeText = "";
+    }
+
+    private static string BuildImportNoticeText(TokenImportResult result)
+    {
+        if (result.OverwrittenFiles.Count == 0)
+        {
+            return result.SummaryMessage;
+        }
+
+        return string.IsNullOrWhiteSpace(result.SummaryMessage)
+            ? $"已覆盖同名凭证：{string.Join("、", result.OverwrittenFiles)}。"
+            : $"{result.SummaryMessage}（已覆盖同名凭证：{string.Join("、", result.OverwrittenFiles)}）";
     }
 
     // --- Window management ---

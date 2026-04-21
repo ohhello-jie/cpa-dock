@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using CPALauncher.ViewModels;
 using Hardcodet.Wpf.TaskbarNotification;
 
@@ -13,6 +14,7 @@ public partial class MainWindow
 {
     private TaskbarIcon? _trayIcon;
     private bool _isExiting;
+    private DispatcherTimer? _dragLeaveClearTimer;
 
     public MainWindow()
     {
@@ -73,6 +75,84 @@ public partial class MainWindow
                 DiagnosticListBox.ScrollIntoView(DiagnosticListBox.Items[^1]);
             }
         }
+    }
+
+    private void OnDragEnter(object sender, DragEventArgs e) => HandleTokenDragPreview(e);
+
+    private void OnDragOver(object sender, DragEventArgs e) => HandleTokenDragPreview(e);
+
+    private void OnDragLeave(object sender, DragEventArgs e)
+    {
+        ScheduleTokenDropPreviewClear();
+        e.Handled = true;
+    }
+
+    private void OnDrop(object sender, DragEventArgs e)
+    {
+        CancelScheduledTokenDropPreviewClear();
+
+        if (DataContext is MainViewModel vm)
+        {
+            vm.ImportDroppedTokens(GetDroppedFilePaths(e));
+        }
+
+        e.Handled = true;
+    }
+
+    private void HandleTokenDragPreview(DragEventArgs e)
+    {
+        CancelScheduledTokenDropPreviewClear();
+
+        if (DataContext is MainViewModel vm)
+        {
+            var filePaths = GetDroppedFilePaths(e);
+            vm.PreviewTokenDrop(filePaths);
+            e.Effects = vm.IsTokenDropValid ? DragDropEffects.Copy : DragDropEffects.None;
+        }
+        else
+        {
+            e.Effects = DragDropEffects.None;
+        }
+
+        e.Handled = true;
+    }
+
+    private void ScheduleTokenDropPreviewClear()
+    {
+        if (_dragLeaveClearTimer == null)
+        {
+            _dragLeaveClearTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromMilliseconds(80),
+            };
+            _dragLeaveClearTimer.Tick += OnDragLeaveClearTimerTick;
+        }
+
+        _dragLeaveClearTimer.Stop();
+        _dragLeaveClearTimer.Start();
+    }
+
+    private void CancelScheduledTokenDropPreviewClear()
+    {
+        _dragLeaveClearTimer?.Stop();
+    }
+
+    private void OnDragLeaveClearTimerTick(object? sender, EventArgs e)
+    {
+        _dragLeaveClearTimer?.Stop();
+        (DataContext as MainViewModel)?.ClearTokenDropPreview();
+    }
+
+    private static IReadOnlyList<string> GetDroppedFilePaths(DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            return Array.Empty<string>();
+        }
+
+        return e.Data.GetData(DataFormats.FileDrop) is string[] filePaths
+            ? filePaths
+            : Array.Empty<string>();
     }
 
     private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
