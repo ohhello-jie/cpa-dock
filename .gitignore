@@ -491,3 +491,7 @@ _decompiled2/
 # Local git worktrees
 .worktrees/
 
+# Local planning/spec/test assets
+docs/superpowers/
+docs/manual-test-assets/
+
