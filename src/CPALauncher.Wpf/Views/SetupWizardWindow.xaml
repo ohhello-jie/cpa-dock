@@ -11,7 +11,9 @@
            AllowsTransparency="True"
            UseLayoutRounding="True"
            SnapsToDevicePixels="True"
-           Background="Transparent">
+           Background="Transparent"
+           BorderBrush="{DynamicResource WizardWindowEdgeBrush}"
+           BorderThickness="1">
 
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="0"
