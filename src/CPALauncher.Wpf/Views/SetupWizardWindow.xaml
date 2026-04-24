@@ -37,8 +37,23 @@
         <Style x:Key="WizardTextBoxStyle" TargetType="TextBox">
             <Setter Property="Height" Value="34"/>
             <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Background" Value="#F8FBFE"/>
+            <Setter Property="BorderBrush" Value="{StaticResource WizardLineBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="Foreground" Value="{StaticResource WizardInkBrush}"/>
+            <Setter Property="hc:BorderElement.CornerRadius" Value="8"/>
+        </Style>
+
+        <Style x:Key="WizardPasswordBoxStyle" TargetType="PasswordBox">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Background" Value="#F8FBFE"/>
+            <Setter Property="BorderBrush" Value="{StaticResource WizardLineBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource WizardInkBrush}"/>
+            <Setter Property="hc:BorderElement.CornerRadius" Value="8"/>
         </Style>
 
         <Style x:Key="WizardButtonStyle" TargetType="Button">
@@ -83,12 +98,9 @@
     </hc:Window.Resources>
 
     <Border Background="{StaticResource WizardBackgroundBrush}"
-            BorderBrush="#C8D4E1"
+            BorderBrush="#EAF1F8"
             BorderThickness="1"
             CornerRadius="12">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="24" ShadowDepth="4" Opacity="0.18" Color="#51677D"/>
-        </Border.Effect>
 
         <Grid Margin="28,24,28,22">
             <Grid.RowDefinitions>
@@ -99,7 +111,9 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="0" MouseLeftButtonDown="OnWindowMouseLeftButtonDown">
+            <Grid Grid.Row="0"
+                  Background="Transparent"
+                  MouseLeftButtonDown="OnWindowMouseLeftButtonDown">
                 <StackPanel>
                     <TextBlock Text="配置 CPA"
                                FontSize="22"
@@ -156,7 +170,14 @@
                     <hc:NumericUpDown Grid.Row="2" Grid.Column="1"
                                       x:Name="PortNumericUpDown"
                                       Value="8317" Minimum="1" Maximum="65535"
-                                      Height="34"/>
+                                      Height="34"
+                                      Padding="10,5"
+                                      Background="#F8FBFE"
+                                      BorderBrush="{StaticResource WizardLineBrush}"
+                                      BorderThickness="1"
+                                      FontSize="13"
+                                      Foreground="{StaticResource WizardInkBrush}"
+                                      hc:BorderElement.CornerRadius="8"/>
 
                     <TextBlock Grid.Row="4" Grid.Column="0" Text="代理地址"
                                FontSize="13" VerticalAlignment="Center"
@@ -172,9 +193,7 @@
                                Foreground="{StaticResource WizardMutedBrush}"/>
                     <StackPanel Grid.Row="6" Grid.Column="1">
                         <PasswordBox x:Name="SecretKeyPasswordBox"
-                                     Height="34"
-                                     FontSize="13"
-                                     Padding="10,5"/>
+                                     Style="{StaticResource WizardPasswordBoxStyle}"/>
                         <TextBlock Text="留空将自动生成，并保存到启动器。"
                                    FontSize="12" Margin="0,7,0,0"
                                    TextWrapping="Wrap"

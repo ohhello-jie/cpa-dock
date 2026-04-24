@@ -75,16 +75,38 @@
             <Setter Property="Background" Value="{StaticResource DialogPrimaryBrush}"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#3FA36C"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="#3FA36C"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#2F8C5A"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="#2F8C5A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
     <Border Background="{StaticResource DialogBackgroundBrush}"
-            BorderBrush="#C8D4E1"
+            BorderBrush="#EAF1F8"
             BorderThickness="1"
             CornerRadius="12">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="24" ShadowDepth="4" Opacity="0.18" Color="#51677D"/>
-        </Border.Effect>
 
         <Grid Margin="26,24,26,22">
             <Grid.RowDefinitions>
@@ -95,7 +117,9 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="0" MouseLeftButtonDown="OnWindowMouseLeftButtonDown">
+            <Grid Grid.Row="0"
+                  Background="Transparent"
+                  MouseLeftButtonDown="OnWindowMouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="14"/>
