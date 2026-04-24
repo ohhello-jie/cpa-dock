@@ -1,96 +1,199 @@
 <hc:Window x:Class="CPALauncher.Views.SetupWizardWindow"
            xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+           xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
            xmlns:hc="https://handyorg.github.io/handycontrol"
            Title="CPA 初始配置向导"
-           Width="500" Height="420"
+           Width="540" Height="454"
            WindowStartupLocation="CenterOwner"
            ResizeMode="NoResize"
+           WindowStyle="None"
+           AllowsTransparency="True"
            UseLayoutRounding="True"
            SnapsToDevicePixels="True"
-           Background="{DynamicResource RegionBrush}">
+           Background="Transparent">
 
-    <Grid Margin="28,24,28,20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="20"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0"
+                            ResizeBorderThickness="0"
+                            GlassFrameThickness="0"
+                            CornerRadius="12"
+                            UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
 
-        <!-- Header -->
-        <StackPanel Grid.Row="0">
-            <TextBlock Text="配置 CPA 参数"
-                       FontSize="18" FontWeight="Bold"
-                       Foreground="{DynamicResource PrimaryTextBrush}"/>
-            <TextBlock Text="CPA 已下载完成，请确认以下参数。默认值适合大多数场景，可直接点击「完成配置」。"
-                       FontSize="12" Margin="0,6,0,0"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource SecondaryTextBrush}"/>
-        </StackPanel>
+    <hc:Window.Resources>
+        <SolidColorBrush x:Key="WizardInkBrush" Color="#142233"/>
+        <SolidColorBrush x:Key="WizardMutedBrush" Color="#536376"/>
+        <SolidColorBrush x:Key="WizardLineBrush" Color="#D9E2EC"/>
+        <LinearGradientBrush x:Key="WizardBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#F7FAFD" Offset="0"/>
+            <GradientStop Color="#EAF1F8" Offset="1"/>
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="WizardPrimaryBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#57B77C" Offset="0"/>
+            <GradientStop Color="#349866" Offset="1"/>
+        </LinearGradientBrush>
 
-        <!-- Form -->
-        <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="80"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+        <Style x:Key="WizardTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource WizardInkBrush}"/>
+        </Style>
+
+        <Style x:Key="WizardButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="MinWidth" Value="88"/>
+            <Setter Property="Padding" Value="16,0"/>
+            <Setter Property="Background" Value="#F8FBFE"/>
+            <Setter Property="BorderBrush" Value="#DDE7F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{StaticResource WizardInkBrush}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#EDF4FA"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="WizardPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource WizardButtonStyle}">
+            <Setter Property="MinWidth" Value="112"/>
+            <Setter Property="Background" Value="{StaticResource WizardPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+    </hc:Window.Resources>
+
+    <Border Background="{StaticResource WizardBackgroundBrush}"
+            BorderBrush="#C8D4E1"
+            BorderThickness="1"
+            CornerRadius="12">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="24" ShadowDepth="4" Opacity="0.18" Color="#51677D"/>
+        </Border.Effect>
+
+        <Grid Margin="28,24,28,22">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="12"/>
+                <RowDefinition Height="22"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="12"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="12"/>
+                <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="监听地址"
-                       FontSize="12" VerticalAlignment="Center"
-                       Foreground="{DynamicResource SecondaryTextBrush}"/>
-            <TextBox Grid.Row="0" Grid.Column="1"
-                     x:Name="HostTextBox" Text="127.0.0.1"
-                     FontSize="12"/>
+            <Grid Grid.Row="0" MouseLeftButtonDown="OnWindowMouseLeftButtonDown">
+                <StackPanel>
+                    <TextBlock Text="配置 CPA"
+                               FontSize="22"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource WizardInkBrush}"/>
+                    <TextBlock Text="确认监听、代理和管理密钥。"
+                               FontSize="13"
+                               Margin="0,7,0,0"
+                               TextWrapping="Wrap"
+                               Foreground="{StaticResource WizardMutedBrush}"/>
+                </StackPanel>
+                <Button Content="&#xE8BB;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="13"
+                        Width="34"
+                        Height="34"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Style="{StaticResource WizardButtonStyle}"
+                        Click="OnSkipClick"/>
+            </Grid>
 
-            <TextBlock Grid.Row="2" Grid.Column="0" Text="监听端口"
-                       FontSize="12" VerticalAlignment="Center"
-                       Foreground="{DynamicResource SecondaryTextBrush}"/>
-            <hc:NumericUpDown Grid.Row="2" Grid.Column="1"
-                              x:Name="PortNumericUpDown"
-                              Value="8317" Minimum="1" Maximum="65535"
-                              Height="28"/>
+            <Border Grid.Row="2"
+                    Background="#F7FBFE"
+                    BorderBrush="{StaticResource WizardLineBrush}"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    Padding="18,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="88"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="14"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="14"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="14"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="4" Grid.Column="0" Text="代理地址"
-                       FontSize="12" VerticalAlignment="Center"
-                       Foreground="{DynamicResource SecondaryTextBrush}"/>
-            <TextBox Grid.Row="4" Grid.Column="1"
-                     x:Name="ProxyUrlTextBox"
-                     FontSize="12"
-                     hc:InfoElement.Placeholder="留空则不使用代理"/>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="监听地址"
+                               FontSize="13" VerticalAlignment="Center"
+                               Foreground="{StaticResource WizardMutedBrush}"/>
+                    <TextBox Grid.Row="0" Grid.Column="1"
+                             x:Name="HostTextBox" Text="127.0.0.1"
+                             Style="{StaticResource WizardTextBoxStyle}"/>
 
-            <TextBlock Grid.Row="6" Grid.Column="0" Text="管理密钥"
-                       FontSize="12" VerticalAlignment="Center"
-                       Foreground="{DynamicResource SecondaryTextBrush}"/>
-            <StackPanel Grid.Row="6" Grid.Column="1">
-                <PasswordBox x:Name="SecretKeyPasswordBox"
-                             FontSize="12"/>
-                <TextBlock Text="留空则自动生成，并保存到启动器里方便后续复制登录。"
-                           FontSize="11" Margin="0,6,0,0"
-                           TextWrapping="Wrap"
-                           Foreground="{DynamicResource ThirdlyTextBrush}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="监听端口"
+                               FontSize="13" VerticalAlignment="Center"
+                               Foreground="{StaticResource WizardMutedBrush}"/>
+                    <hc:NumericUpDown Grid.Row="2" Grid.Column="1"
+                                      x:Name="PortNumericUpDown"
+                                      Value="8317" Minimum="1" Maximum="65535"
+                                      Height="34"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="代理地址"
+                               FontSize="13" VerticalAlignment="Center"
+                               Foreground="{StaticResource WizardMutedBrush}"/>
+                    <TextBox Grid.Row="4" Grid.Column="1"
+                             x:Name="ProxyUrlTextBox"
+                             Style="{StaticResource WizardTextBoxStyle}"
+                             hc:InfoElement.Placeholder="留空则不使用代理"/>
+
+                    <TextBlock Grid.Row="6" Grid.Column="0" Text="管理密钥"
+                               FontSize="13" VerticalAlignment="Top"
+                               Margin="0,7,0,0"
+                               Foreground="{StaticResource WizardMutedBrush}"/>
+                    <StackPanel Grid.Row="6" Grid.Column="1">
+                        <PasswordBox x:Name="SecretKeyPasswordBox"
+                                     Height="34"
+                                     FontSize="13"
+                                     Padding="10,5"/>
+                        <TextBlock Text="留空将自动生成，并保存到启动器。"
+                                   FontSize="12" Margin="0,7,0,0"
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource WizardMutedBrush}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <StackPanel Grid.Row="4"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right">
+                <Button Content="跳过"
+                        Style="{StaticResource WizardButtonStyle}"
+                        Margin="0,0,12,0"
+                        Click="OnSkipClick"/>
+                <Button Content="完成配置"
+                        Style="{StaticResource WizardPrimaryButtonStyle}"
+                        Click="OnFinishClick"/>
             </StackPanel>
         </Grid>
-
-        <!-- Buttons -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal"
-                    HorizontalAlignment="Right">
-            <Button Content="跳过" Width="80" Height="36"
-                    Margin="0,0,12,0"
-                    Click="OnSkipClick"/>
-            <Button Content="完成配置" Width="100" Height="36"
-                    Style="{StaticResource ButtonPrimary}"
-                    Click="OnFinishClick"/>
-        </StackPanel>
-    </Grid>
+    </Border>
 </hc:Window>

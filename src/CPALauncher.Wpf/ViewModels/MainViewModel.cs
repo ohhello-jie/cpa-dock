@@ -9,7 +9,7 @@ using System.Windows.Threading;
 using CPALauncher.Models;
 using CPALauncher.Services;
 using HandyControl.Data;
-using MessageBox = HandyControl.Controls.MessageBox;
+using MessageBox = CPALauncher.Views.LauncherDialog;
 
 namespace CPALauncher.ViewModels;
 

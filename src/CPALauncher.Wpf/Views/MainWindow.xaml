@@ -248,6 +248,48 @@
             </Setter>
         </Style>
 
+        <Style x:Key="UtilityActionStyle" TargetType="Button">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="MinWidth" Value="170"/>
+            <Setter Property="Padding" Value="18,0"/>
+            <Setter Property="Background" Value="#F8FBFE"/>
+            <Setter Property="BorderBrush" Value="#DDE7F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#FFFFFF"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="#C9D7E6"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#EDF4FA"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.48"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.07" Color="#31516C"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="OptionSwitchStyle" TargetType="ToggleButton">
             <Setter Property="Width" Value="42"/>
             <Setter Property="Height" Value="24"/>
@@ -361,15 +403,15 @@
 
             <Grid Grid.Row="1" Margin="34,18,34,0">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="148"/>
-                    <RowDefinition Height="52"/>
-                    <RowDefinition Height="250"/>
-                    <RowDefinition Height="*" MinHeight="180"/>
+                    <RowDefinition Height="188"/>
+                    <RowDefinition Height="62"/>
+                    <RowDefinition Height="300"/>
+                    <RowDefinition Height="*" MinHeight="160"/>
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="16"/>
-                    <ColumnDefinition Width="300"/>
+                    <ColumnDefinition Width="320"/>
                 </Grid.ColumnDefinitions>
 
                 <Border Grid.Row="0"
@@ -482,23 +524,27 @@
                 <Border Grid.Row="1"
                         Grid.Column="0"
                         Style="{StaticResource GlassCardStyle}"
+                        Padding="8"
                         Margin="0,12,0,0">
-                    <UniformGrid Columns="2">
-                        <Button Command="{Binding RefreshCommand}" Style="{StaticResource FlatTextButtonStyle}" Margin="20,7">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Command="{Binding RefreshCommand}" Style="{StaticResource UtilityActionStyle}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="18" Margin="0,0,12,0"/>
-                                <TextBlock Text="重新检测" FontSize="15"/>
+                                <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="17" Margin="0,0,10,0"/>
+                                <TextBlock Text="重新检测"/>
                             </StackPanel>
                         </Button>
-                        <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="1,0">
-                            <Button Command="{Binding OpenLogsCommand}" Style="{StaticResource FlatTextButtonStyle}" Margin="20,7">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="18" Margin="0,0,12,0"/>
-                                <TextBlock Text="打开日志目录" FontSize="15"/>
+                        <Button Grid.Column="2" Command="{Binding OpenLogsCommand}" Style="{StaticResource UtilityActionStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="17" Margin="0,0,10,0"/>
+                                <TextBlock Text="打开日志目录"/>
                             </StackPanel>
                         </Button>
-                        </Border>
-                    </UniformGrid>
+                    </Grid>
                 </Border>
 
                 <Border Grid.Row="0"
@@ -532,7 +578,7 @@
                                 </Button>
                             </Grid>
 
-                            <Border Background="#F7FBFE" CornerRadius="9" Padding="12,10" Margin="0,0,0,8">
+                            <Border Background="#F7FBFE" CornerRadius="9" Padding="12,8" Margin="0,0,0,8">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -548,18 +594,23 @@
                                                        FontSize="14"
                                                        Margin="10,0,0,0"/>
                                         </StackPanel>
-                                        <StackPanel Orientation="Horizontal">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
                                             <Ellipse Width="8" Height="8" Fill="#E99B25" VerticalAlignment="Center" Margin="0,0,9,0"/>
-                                            <TextBlock Text="{Binding LauncherUpdateCardText}"
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding LauncherUpdateCardText}"
                                                        Foreground="#8C530F"
                                                        FontSize="12"
                                                        TextTrimming="CharacterEllipsis"/>
-                                        </StackPanel>
+                                        </Grid>
                                     </StackPanel>
                                 </Grid>
                             </Border>
 
-                            <Border Background="#F3EADF" CornerRadius="9" Padding="12,10">
+                            <Border Background="#F3EADF" CornerRadius="9" Padding="12,8">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -575,13 +626,18 @@
                                                        FontSize="14"
                                                        Margin="10,0,0,0"/>
                                         </StackPanel>
-                                        <StackPanel Orientation="Horizontal">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
                                             <Ellipse Width="8" Height="8" Fill="#E99B25" VerticalAlignment="Center" Margin="0,0,9,0"/>
-                                            <TextBlock Text="{Binding UpdateCardText}"
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding UpdateCardText}"
                                                        Foreground="#9A4D08"
                                                        FontSize="12"
                                                        TextTrimming="CharacterEllipsis"/>
-                                        </StackPanel>
+                                        </Grid>
                                         <ProgressBar Value="{Binding UpdateProgress}"
                                                      Maximum="100"
                                                      Height="5"
@@ -627,7 +683,7 @@
 
                     <Border Grid.Column="0"
                             Style="{StaticResource GlassCardStyle}"
-                            Padding="20,18">
+                            Padding="16,14">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -641,14 +697,14 @@
 
                             <Grid Grid.Row="1">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="31"/>
-                                    <RowDefinition Height="31"/>
-                                    <RowDefinition Height="31"/>
-                                    <RowDefinition Height="31"/>
-                                    <RowDefinition Height="31"/>
-                                    <RowDefinition Height="31"/>
-                                    <RowDefinition Height="31"/>
-                                    <RowDefinition Height="31"/>
+                                    <RowDefinition Height="28"/>
+                                    <RowDefinition Height="28"/>
+                                    <RowDefinition Height="28"/>
+                                    <RowDefinition Height="28"/>
+                                    <RowDefinition Height="28"/>
+                                    <RowDefinition Height="28"/>
+                                    <RowDefinition Height="28"/>
+                                    <RowDefinition Height="28"/>
                                 </Grid.RowDefinitions>
 
                                 <Grid Grid.Row="0">
@@ -769,7 +825,7 @@
 
                     <Border Grid.Column="2"
                             Style="{StaticResource GlassCardStyle}"
-                            Padding="20,18">
+                            Padding="16,14">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -787,13 +843,13 @@
                                     CornerRadius="8">
                                 <Grid>
                                     <Grid.RowDefinitions>
-                                        <RowDefinition Height="32"/>
-                                        <RowDefinition Height="32"/>
-                                        <RowDefinition Height="32"/>
-                                        <RowDefinition Height="32"/>
-                                        <RowDefinition Height="32"/>
-                                        <RowDefinition Height="32"/>
-                                        <RowDefinition Height="32"/>
+                                        <RowDefinition Height="30"/>
+                                        <RowDefinition Height="30"/>
+                                        <RowDefinition Height="30"/>
+                                        <RowDefinition Height="30"/>
+                                        <RowDefinition Height="30"/>
+                                        <RowDefinition Height="30"/>
+                                        <RowDefinition Height="30"/>
                                     </Grid.RowDefinitions>
 
                                     <Grid Grid.Row="0" Margin="14,0">

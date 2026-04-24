@@ -1,4 +1,5 @@
 using CPALauncher.Services;
+using System.Windows.Input;
 
 namespace CPALauncher.Views;
 
@@ -41,5 +42,13 @@ public partial class SetupWizardWindow
     {
         DialogResult = false;
         Close();
+    }
+
+    private void OnWindowMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ButtonState == MouseButtonState.Pressed)
+        {
+            DragMove();
+        }
     }
 }
