@@ -20,6 +20,7 @@ public class MainViewModel : ViewModelBase
     private const string ImportRestartedNotice = "已导入凭证，CPA 已自动重启并生效";
     private const string ImportRestartFailedNotice = "凭证已导入，但自动重启失败，请手动重启 CPA";
     private const string ImportExternalRestartNotice = "已导入凭证，如需立即生效，请手动重启当前 CPA";
+    private const string HiddenConfigurationValue = "**";
     private const string ImportStoppedNotice = "已导入凭证，将在下次启动 CPA 时生效";
 
     private readonly CpaProcessManager _processManager = new();
@@ -265,14 +266,14 @@ public class MainViewModel : ViewModelBase
 
     public string ManagementSecretKeyDisplay =>
         _isConfigurationInfoHidden && HasManagementSecretKey
-            ? "已隐藏"
+            ? HiddenConfigurationValue
             : string.IsNullOrWhiteSpace(_settings.ManagementSecretKey)
                 ? "未保存"
                 : MaskManagementSecretKey(_settings.ManagementSecretKey);
 
     public string ManagementSecretKeyToolTip =>
         _isConfigurationInfoHidden && HasManagementSecretKey
-            ? "信息已隐藏"
+            ? HiddenConfigurationValue
             : string.IsNullOrWhiteSpace(_settings.ManagementSecretKey)
                 ? "当前没有已保存的管理密钥。"
                 : _settings.ManagementSecretKey;
@@ -2017,14 +2018,14 @@ public class MainViewModel : ViewModelBase
     private string FormatConfigurationValue(string value)
     {
         return _isConfigurationInfoHidden && !string.IsNullOrWhiteSpace(value)
-            ? "已隐藏"
+            ? HiddenConfigurationValue
             : value;
     }
 
     private string FormatConfigurationToolTip(string value)
     {
         return _isConfigurationInfoHidden && !string.IsNullOrWhiteSpace(value)
-            ? "信息已隐藏"
+            ? HiddenConfigurationValue
             : value;
     }
 

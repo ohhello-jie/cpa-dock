@@ -388,11 +388,11 @@
                 <StackPanel Grid.Column="0"
                             Orientation="Horizontal"
                             VerticalAlignment="Center">
-                    <TextBlock Text="C"
-                               FontSize="30"
-                               FontWeight="Bold"
-                               Foreground="{StaticResource LogoBrush}"
-                               VerticalAlignment="Center"/>
+                    <Image Width="30"
+                           Height="30"
+                           Source="pack://application:,,,/Assets/app.ico"
+                           RenderOptions.BitmapScalingMode="HighQuality"
+                           VerticalAlignment="Center"/>
                     <TextBlock Text="CPALauncher"
                                FontSize="19"
                                FontWeight="SemiBold"
@@ -717,14 +717,22 @@
                                 <Button Command="{Binding OpenRepositoryCommand}"
                                         Style="{StaticResource FlatTextButtonStyle}">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="15" Margin="0,0,8,0"/>
-                                        <TextBlock Text="项目仓库"/>
+                                        <Viewbox Width="15" Height="15" Margin="0,0,8,0">
+                                            <Path Fill="{DynamicResource MutedBrush}"
+                                                  Stretch="Uniform"
+                                                  Data="M12,2C6.477,2 2,6.477 2,12C2,16.418 4.865,20.166 8.839,21.489C9.339,21.581 9.521,21.272 9.521,21.007C9.521,20.769 9.512,20.141 9.507,19.307C6.725,19.911 6.138,17.965 6.138,17.965C5.683,16.808 5.028,16.5 5.028,16.5C4.12,15.879 5.097,15.892 5.097,15.892C6.101,15.963 6.629,16.923 6.629,16.923C7.521,18.452 8.97,18.01 9.539,17.754C9.63,17.108 9.889,16.667 10.175,16.417C7.954,16.164 5.62,15.306 5.62,11.473C5.62,10.381 6.01,9.487 6.649,8.789C6.546,8.536 6.203,7.519 6.747,6.142C6.747,6.142 7.587,5.873 9.497,7.168C10.294,6.946 11.15,6.835 12,6.831C12.85,6.835 13.705,6.946 14.504,7.168C16.413,5.873 17.251,6.142 17.251,6.142C17.797,7.519 17.454,8.536 17.351,8.789C17.991,9.487 18.379,10.381 18.379,11.473C18.379,15.315 16.042,16.161 13.814,16.409C14.173,16.719 14.493,17.332 14.493,18.269C14.493,19.612 14.481,20.695 14.481,21.025C14.481,21.292 14.661,21.604 15.169,21.506C19.138,20.162 22,16.416 22,12C22,6.477 17.523,2 12,2Z"/>
+                                        </Viewbox>
+                                        <TextBlock Text="本项目仓库"/>
                                     </StackPanel>
                                 </Button>
                                 <Button Command="{Binding OpenCpaRepositoryCommand}"
                                         Style="{StaticResource FlatTextButtonStyle}">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" FontSize="13" Margin="0,0,8,0"/>
+                                        <Viewbox Width="15" Height="15" Margin="0,0,8,0">
+                                            <Path Fill="{DynamicResource MutedBrush}"
+                                                  Stretch="Uniform"
+                                                  Data="M12,2C6.477,2 2,6.477 2,12C2,16.418 4.865,20.166 8.839,21.489C9.339,21.581 9.521,21.272 9.521,21.007C9.521,20.769 9.512,20.141 9.507,19.307C6.725,19.911 6.138,17.965 6.138,17.965C5.683,16.808 5.028,16.5 5.028,16.5C4.12,15.879 5.097,15.892 5.097,15.892C6.101,15.963 6.629,16.923 6.629,16.923C7.521,18.452 8.97,18.01 9.539,17.754C9.63,17.108 9.889,16.667 10.175,16.417C7.954,16.164 5.62,15.306 5.62,11.473C5.62,10.381 6.01,9.487 6.649,8.789C6.546,8.536 6.203,7.519 6.747,6.142C6.747,6.142 7.587,5.873 9.497,7.168C10.294,6.946 11.15,6.835 12,6.831C12.85,6.835 13.705,6.946 14.504,7.168C16.413,5.873 17.251,6.142 17.251,6.142C17.797,7.519 17.454,8.536 17.351,8.789C17.991,9.487 18.379,10.381 18.379,11.473C18.379,15.315 16.042,16.161 13.814,16.409C14.173,16.719 14.493,17.332 14.493,18.269C14.493,19.612 14.481,20.695 14.481,21.025C14.481,21.292 14.661,21.604 15.169,21.506C19.138,20.162 22,16.416 22,12C22,6.477 17.523,2 12,2Z"/>
+                                        </Viewbox>
                                         <TextBlock Text="CPA 源项目"/>
                                     </StackPanel>
                                 </Button>
@@ -769,9 +777,64 @@
                                         Command="{Binding ToggleConfigurationInfoVisibilityCommand}"
                                         Style="{StaticResource FlatTextButtonStyle}"
                                         ToolTip="{Binding ConfigurationInfoVisibilityToolTip}">
-                                    <TextBlock Text="{Binding ConfigurationInfoVisibilityGlyph}"
-                                               FontFamily="Segoe MDL2 Assets"
-                                               FontSize="14"/>
+                                    <Grid Width="18" Height="18">
+                                        <Viewbox Width="18" Height="18">
+                                            <Viewbox.Style>
+                                                <Style TargetType="Viewbox">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsConfigurationInfoHidden}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Viewbox.Style>
+                                            <Canvas Width="24" Height="24">
+                                                <Path Data="M2.5,12 C5.2,7.2 8.4,5 12,5 C15.6,5 18.8,7.2 21.5,12 C18.8,16.8 15.6,19 12,19 C8.4,19 5.2,16.8 2.5,12 Z"
+                                                      Fill="Transparent"
+                                                      Stroke="{DynamicResource InkBrush}"
+                                                      StrokeThickness="1.8"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"
+                                                      StrokeLineJoin="Round"/>
+                                                <Ellipse Canvas.Left="9"
+                                                         Canvas.Top="9"
+                                                         Width="6"
+                                                         Height="6"
+                                                         Fill="Transparent"
+                                                         Stroke="{DynamicResource InkBrush}"
+                                                         StrokeThickness="1.8"/>
+                                            </Canvas>
+                                        </Viewbox>
+                                        <Viewbox Width="18" Height="18">
+                                            <Viewbox.Style>
+                                                <Style TargetType="Viewbox">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsConfigurationInfoHidden}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Viewbox.Style>
+                                            <Canvas Width="24" Height="24">
+                                                <Path Data="M4,13 C6.5,16 9,17.5 12,17.5 C15,17.5 17.5,16 20,13"
+                                                      Fill="Transparent"
+                                                      Stroke="{DynamicResource InkBrush}"
+                                                      StrokeThickness="1.8"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"
+                                                      StrokeLineJoin="Round"/>
+                                                <Path Data="M7,10 L5.5,8.5 M12,9 L12,6.5 M17,10 L18.5,8.5"
+                                                      Fill="Transparent"
+                                                      Stroke="{DynamicResource InkBrush}"
+                                                      StrokeThickness="1.8"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"
+                                                      StrokeLineJoin="Round"/>
+                                            </Canvas>
+                                        </Viewbox>
+                                    </Grid>
                                 </Button>
                             </Grid>
 
