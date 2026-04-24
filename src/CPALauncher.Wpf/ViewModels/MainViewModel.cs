@@ -55,6 +55,7 @@ public class MainViewModel : ViewModelBase
     private string _configDirectory = "";
     private string _logDirectory = "";
     private string _authDirectory = "";
+    private bool _isConfigurationInfoHidden;
 
     private bool _minimizeToTrayOnClose = true;
     private bool _autoStartService;
@@ -135,6 +136,7 @@ public class MainViewModel : ViewModelBase
                 _settings.ExecutablePath = value;
                 SaveSettings();
                 OnPropertyChanged(nameof(CurrentCpaVersionDisplay));
+                NotifyConfigurationInfoChanged();
             }
         }
     }
@@ -148,6 +150,7 @@ public class MainViewModel : ViewModelBase
             {
                 _settings.ConfigPath = value;
                 SaveSettings();
+                NotifyConfigurationInfoChanged();
             }
         }
     }
@@ -156,42 +159,123 @@ public class MainViewModel : ViewModelBase
     public string ManagementUrl
     {
         get => _managementUrl;
-        set => SetProperty(ref _managementUrl, value);
+        set
+        {
+            if (SetProperty(ref _managementUrl, value))
+            {
+                NotifyConfigurationInfoChanged();
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
     }
 
     public string ProbeUrl
     {
         get => _probeUrl;
-        set => SetProperty(ref _probeUrl, value);
+        set
+        {
+            if (SetProperty(ref _probeUrl, value))
+            {
+                NotifyConfigurationInfoChanged();
+            }
+        }
     }
 
     public string ConfigDirectory
     {
         get => _configDirectory;
-        set => SetProperty(ref _configDirectory, value);
+        set
+        {
+            if (SetProperty(ref _configDirectory, value))
+            {
+                NotifyConfigurationInfoChanged();
+            }
+        }
     }
 
     public string LogDirectory
     {
         get => _logDirectory;
-        set => SetProperty(ref _logDirectory, value);
+        set
+        {
+            if (SetProperty(ref _logDirectory, value))
+            {
+                NotifyConfigurationInfoChanged();
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
     }
 
     public string AuthDirectory
     {
         get => _authDirectory;
-        set => SetProperty(ref _authDirectory, value);
+        set
+        {
+            if (SetProperty(ref _authDirectory, value))
+            {
+                NotifyConfigurationInfoChanged();
+            }
+        }
     }
 
+    public bool IsConfigurationInfoHidden
+    {
+        get => _isConfigurationInfoHidden;
+        set
+        {
+            if (SetProperty(ref _isConfigurationInfoHidden, value))
+            {
+                NotifyConfigurationInfoChanged();
+            }
+        }
+    }
+
+    public string ConfigurationInfoVisibilityGlyph => _isConfigurationInfoHidden ? "\uE890" : "\uE8F2";
+
+    public string ConfigurationInfoVisibilityToolTip =>
+        _isConfigurationInfoHidden ? "显示配置区域信息" : "隐藏配置区域信息";
+
+    public string ExecutablePathDisplay => FormatConfigurationValue(_executablePath);
+
+    public string ExecutablePathToolTip => FormatConfigurationToolTip(_executablePath);
+
+    public string ConfigPathDisplay => FormatConfigurationValue(_configPath);
+
+    public string ConfigPathToolTip => FormatConfigurationToolTip(_configPath);
+
+    public string ManagementUrlDisplay => FormatConfigurationValue(_managementUrl);
+
+    public string ManagementUrlToolTip => FormatConfigurationToolTip(_managementUrl);
+
+    public string ProbeUrlDisplay => FormatConfigurationValue(_probeUrl);
+
+    public string ProbeUrlToolTip => FormatConfigurationToolTip(_probeUrl);
+
+    public string ConfigDirectoryDisplay => FormatConfigurationValue(_configDirectory);
+
+    public string ConfigDirectoryToolTip => FormatConfigurationToolTip(_configDirectory);
+
+    public string LogDirectoryDisplay => FormatConfigurationValue(_logDirectory);
+
+    public string LogDirectoryToolTip => FormatConfigurationToolTip(_logDirectory);
+
+    public string AuthDirectoryDisplay => FormatConfigurationValue(_authDirectory);
+
+    public string AuthDirectoryToolTip => FormatConfigurationToolTip(_authDirectory);
+
     public string ManagementSecretKeyDisplay =>
-        string.IsNullOrWhiteSpace(_settings.ManagementSecretKey)
-            ? "未保存"
-            : MaskManagementSecretKey(_settings.ManagementSecretKey);
+        _isConfigurationInfoHidden && HasManagementSecretKey
+            ? "已隐藏"
+            : string.IsNullOrWhiteSpace(_settings.ManagementSecretKey)
+                ? "未保存"
+                : MaskManagementSecretKey(_settings.ManagementSecretKey);
 
     public string ManagementSecretKeyToolTip =>
-        string.IsNullOrWhiteSpace(_settings.ManagementSecretKey)
-            ? "当前没有已保存的管理密钥。"
-            : _settings.ManagementSecretKey;
+        _isConfigurationInfoHidden && HasManagementSecretKey
+            ? "信息已隐藏"
+            : string.IsNullOrWhiteSpace(_settings.ManagementSecretKey)
+                ? "当前没有已保存的管理密钥。"
+                : _settings.ManagementSecretKey;
 
     public bool HasManagementSecretKey => !string.IsNullOrWhiteSpace(_settings.ManagementSecretKey);
 
@@ -502,6 +586,7 @@ public class MainViewModel : ViewModelBase
     public ICommand CopyLogsCommand { get; }
     public ICommand ExportLogsCommand { get; }
     public ICommand ClearLogsCommand { get; }
+    public ICommand ToggleConfigurationInfoVisibilityCommand { get; }
     public ICommand ShowWindowCommand { get; }
     public ICommand ExitApplicationCommand { get; }
 
@@ -533,6 +618,7 @@ public class MainViewModel : ViewModelBase
         CopyLogsCommand = new RelayCommand(CopyLogs);
         ExportLogsCommand = new RelayCommand(ExportLogs);
         ClearLogsCommand = new RelayCommand(ClearLogs);
+        ToggleConfigurationInfoVisibilityCommand = new RelayCommand(ToggleConfigurationInfoVisibility);
         ShowWindowCommand = new RelayCommand(ShowWindow);
         ExitApplicationCommand = new RelayCommand(ExitApplication);
 
@@ -736,6 +822,34 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(ManagementSecretKeyToolTip));
         OnPropertyChanged(nameof(HasManagementSecretKey));
         CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void NotifyConfigurationInfoChanged()
+    {
+        OnPropertyChanged(nameof(ConfigurationInfoVisibilityGlyph));
+        OnPropertyChanged(nameof(ConfigurationInfoVisibilityToolTip));
+        OnPropertyChanged(nameof(ExecutablePathDisplay));
+        OnPropertyChanged(nameof(ExecutablePathToolTip));
+        OnPropertyChanged(nameof(ConfigPathDisplay));
+        OnPropertyChanged(nameof(ConfigPathToolTip));
+        OnPropertyChanged(nameof(ManagementUrlDisplay));
+        OnPropertyChanged(nameof(ManagementUrlToolTip));
+        OnPropertyChanged(nameof(ProbeUrlDisplay));
+        OnPropertyChanged(nameof(ProbeUrlToolTip));
+        OnPropertyChanged(nameof(ConfigDirectoryDisplay));
+        OnPropertyChanged(nameof(ConfigDirectoryToolTip));
+        OnPropertyChanged(nameof(LogDirectoryDisplay));
+        OnPropertyChanged(nameof(LogDirectoryToolTip));
+        OnPropertyChanged(nameof(AuthDirectoryDisplay));
+        OnPropertyChanged(nameof(AuthDirectoryToolTip));
+        OnPropertyChanged(nameof(ManagementSecretKeyDisplay));
+        OnPropertyChanged(nameof(ManagementSecretKeyToolTip));
+    }
+
+    private Task ToggleConfigurationInfoVisibility()
+    {
+        IsConfigurationInfoHidden = !IsConfigurationInfoHidden;
+        return Task.CompletedTask;
     }
 
     private async Task RefreshAsync()
@@ -1898,6 +2012,20 @@ public class MainViewModel : ViewModelBase
         }
 
         return $"{secretKey[..4]}...{secretKey[^4..]}";
+    }
+
+    private string FormatConfigurationValue(string value)
+    {
+        return _isConfigurationInfoHidden && !string.IsNullOrWhiteSpace(value)
+            ? "已隐藏"
+            : value;
+    }
+
+    private string FormatConfigurationToolTip(string value)
+    {
+        return _isConfigurationInfoHidden && !string.IsNullOrWhiteSpace(value)
+            ? "信息已隐藏"
+            : value;
     }
 
     private static void TryCopyManagementSecretKeyToClipboard(string secretKey, string successMessage)

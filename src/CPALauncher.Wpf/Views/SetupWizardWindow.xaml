@@ -25,6 +25,14 @@
         <SolidColorBrush x:Key="WizardInkBrush" Color="#142233"/>
         <SolidColorBrush x:Key="WizardMutedBrush" Color="#536376"/>
         <SolidColorBrush x:Key="WizardLineBrush" Color="#D9E2EC"/>
+        <SolidColorBrush x:Key="WizardWindowEdgeBrush" Color="#EAF1F8"/>
+        <SolidColorBrush x:Key="WizardSurfaceBrush" Color="#F7FBFE"/>
+        <SolidColorBrush x:Key="WizardInputBrush" Color="#F8FBFE"/>
+        <SolidColorBrush x:Key="WizardActionBrush" Color="#F8FBFE"/>
+        <SolidColorBrush x:Key="WizardActionHoverBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="WizardActionPressedBrush" Color="#EDF4FA"/>
+        <SolidColorBrush x:Key="WizardPrimaryHoverBrush" Color="#3FA36C"/>
+        <SolidColorBrush x:Key="WizardPrimaryPressedBrush" Color="#2F8C5A"/>
         <LinearGradientBrush x:Key="WizardBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
             <GradientStop Color="#F7FAFD" Offset="0"/>
             <GradientStop Color="#EAF1F8" Offset="1"/>
@@ -37,22 +45,22 @@
         <Style x:Key="WizardTextBoxStyle" TargetType="TextBox">
             <Setter Property="Height" Value="34"/>
             <Setter Property="Padding" Value="10,5"/>
-            <Setter Property="Background" Value="#F8FBFE"/>
-            <Setter Property="BorderBrush" Value="{StaticResource WizardLineBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource WizardInputBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource WizardLineBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Foreground" Value="{StaticResource WizardInkBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource WizardInkBrush}"/>
             <Setter Property="hc:BorderElement.CornerRadius" Value="8"/>
         </Style>
 
         <Style x:Key="WizardPasswordBoxStyle" TargetType="PasswordBox">
             <Setter Property="Height" Value="34"/>
             <Setter Property="Padding" Value="10,5"/>
-            <Setter Property="Background" Value="#F8FBFE"/>
-            <Setter Property="BorderBrush" Value="{StaticResource WizardLineBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource WizardInputBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource WizardLineBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Foreground" Value="{StaticResource WizardInkBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource WizardInkBrush}"/>
             <Setter Property="hc:BorderElement.CornerRadius" Value="8"/>
         </Style>
 
@@ -60,10 +68,10 @@
             <Setter Property="Height" Value="38"/>
             <Setter Property="MinWidth" Value="88"/>
             <Setter Property="Padding" Value="16,0"/>
-            <Setter Property="Background" Value="#F8FBFE"/>
-            <Setter Property="BorderBrush" Value="#DDE7F0"/>
+            <Setter Property="Background" Value="{DynamicResource WizardActionBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource WizardLineBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="{StaticResource WizardInkBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource WizardInkBrush}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Template">
@@ -74,14 +82,16 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="8">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#FFFFFF"/>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource WizardActionHoverBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#EDF4FA"/>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource WizardActionPressedBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -91,14 +101,39 @@
 
         <Style x:Key="WizardPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource WizardButtonStyle}">
             <Setter Property="MinWidth" Value="112"/>
-            <Setter Property="Background" Value="{StaticResource WizardPrimaryBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource WizardPrimaryBrush}"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource WizardPrimaryHoverBrush}"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource WizardPrimaryHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource WizardPrimaryPressedBrush}"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource WizardPrimaryPressedBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </hc:Window.Resources>
 
-    <Border Background="{StaticResource WizardBackgroundBrush}"
-            BorderBrush="#EAF1F8"
+    <Border Background="{DynamicResource WizardBackgroundBrush}"
+            BorderBrush="{DynamicResource WizardWindowEdgeBrush}"
             BorderThickness="1"
             CornerRadius="12">
 
@@ -118,12 +153,12 @@
                     <TextBlock Text="配置 CPA"
                                FontSize="22"
                                FontWeight="Bold"
-                               Foreground="{StaticResource WizardInkBrush}"/>
+                               Foreground="{DynamicResource WizardInkBrush}"/>
                     <TextBlock Text="确认监听、代理和管理密钥。"
                                FontSize="13"
                                Margin="0,7,0,0"
                                TextWrapping="Wrap"
-                               Foreground="{StaticResource WizardMutedBrush}"/>
+                               Foreground="{DynamicResource WizardMutedBrush}"/>
                 </StackPanel>
                 <Button Content="&#xE8BB;"
                         FontFamily="Segoe MDL2 Assets"
@@ -137,8 +172,8 @@
             </Grid>
 
             <Border Grid.Row="2"
-                    Background="#F7FBFE"
-                    BorderBrush="{StaticResource WizardLineBrush}"
+                    Background="{DynamicResource WizardSurfaceBrush}"
+                    BorderBrush="{DynamicResource WizardLineBrush}"
                     BorderThickness="1"
                     CornerRadius="10"
                     Padding="18,16">
@@ -159,29 +194,29 @@
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="监听地址"
                                FontSize="13" VerticalAlignment="Center"
-                               Foreground="{StaticResource WizardMutedBrush}"/>
+                               Foreground="{DynamicResource WizardMutedBrush}"/>
                     <TextBox Grid.Row="0" Grid.Column="1"
                              x:Name="HostTextBox" Text="127.0.0.1"
                              Style="{StaticResource WizardTextBoxStyle}"/>
 
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="监听端口"
                                FontSize="13" VerticalAlignment="Center"
-                               Foreground="{StaticResource WizardMutedBrush}"/>
+                               Foreground="{DynamicResource WizardMutedBrush}"/>
                     <hc:NumericUpDown Grid.Row="2" Grid.Column="1"
                                       x:Name="PortNumericUpDown"
                                       Value="8317" Minimum="1" Maximum="65535"
                                       Height="34"
                                       Padding="10,5"
-                                      Background="#F8FBFE"
-                                      BorderBrush="{StaticResource WizardLineBrush}"
+                                      Background="{DynamicResource WizardInputBrush}"
+                                      BorderBrush="{DynamicResource WizardLineBrush}"
                                       BorderThickness="1"
                                       FontSize="13"
-                                      Foreground="{StaticResource WizardInkBrush}"
+                                      Foreground="{DynamicResource WizardInkBrush}"
                                       hc:BorderElement.CornerRadius="8"/>
 
                     <TextBlock Grid.Row="4" Grid.Column="0" Text="代理地址"
                                FontSize="13" VerticalAlignment="Center"
-                               Foreground="{StaticResource WizardMutedBrush}"/>
+                               Foreground="{DynamicResource WizardMutedBrush}"/>
                     <TextBox Grid.Row="4" Grid.Column="1"
                              x:Name="ProxyUrlTextBox"
                              Style="{StaticResource WizardTextBoxStyle}"
@@ -190,14 +225,14 @@
                     <TextBlock Grid.Row="6" Grid.Column="0" Text="管理密钥"
                                FontSize="13" VerticalAlignment="Top"
                                Margin="0,7,0,0"
-                               Foreground="{StaticResource WizardMutedBrush}"/>
+                               Foreground="{DynamicResource WizardMutedBrush}"/>
                     <StackPanel Grid.Row="6" Grid.Column="1">
                         <PasswordBox x:Name="SecretKeyPasswordBox"
                                      Style="{StaticResource WizardPasswordBoxStyle}"/>
                         <TextBlock Text="留空将自动生成，并保存到启动器。"
                                    FontSize="12" Margin="0,7,0,0"
                                    TextWrapping="Wrap"
-                                   Foreground="{StaticResource WizardMutedBrush}"/>
+                                   Foreground="{DynamicResource WizardMutedBrush}"/>
                     </StackPanel>
                 </Grid>
             </Border>

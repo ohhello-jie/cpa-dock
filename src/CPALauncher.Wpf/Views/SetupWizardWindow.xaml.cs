@@ -27,6 +27,7 @@ public partial class SetupWizardWindow
     public SetupWizardWindow()
     {
         InitializeComponent();
+        WindowThemeResources.ApplyWizardResources(Resources, WindowThemeResources.IsDarkModeEnabled());
         HostTextBox.Text = LauncherSetupDefaults.DefaultHost;
         PortNumericUpDown.Value = LauncherSetupDefaults.DefaultPort;
         ProxyUrlTextBox.Text = LauncherSetupDefaults.DefaultProxyUrl;

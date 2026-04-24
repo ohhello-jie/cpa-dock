@@ -388,5 +388,21 @@ public partial class MainWindow
         base.OnClosing(e);
     }
 
+    internal void ActivateFromSingleInstanceRequest()
+    {
+        ShowInTaskbar = true;
+        Show();
+
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+
+        Activate();
+        Topmost = true;
+        Topmost = false;
+        Focus();
+    }
+
     internal void MarkExiting() => _isExiting = true;
 }

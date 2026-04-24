@@ -751,11 +751,29 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Text="配置"
-                                       FontSize="17"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource InkBrush}"
-                                       Margin="0,0,0,8"/>
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="32"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="配置"
+                                           FontSize="17"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource InkBrush}"
+                                           VerticalAlignment="Center"/>
+                                <Button Grid.Column="1"
+                                        Width="28"
+                                        Height="28"
+                                        MinWidth="28"
+                                        Padding="0"
+                                        Command="{Binding ToggleConfigurationInfoVisibilityCommand}"
+                                        Style="{StaticResource FlatTextButtonStyle}"
+                                        ToolTip="{Binding ConfigurationInfoVisibilityToolTip}">
+                                    <TextBlock Text="{Binding ConfigurationInfoVisibilityGlyph}"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               FontSize="14"/>
+                                </Button>
+                            </Grid>
 
                             <Grid Grid.Row="1">
                                 <Grid.RowDefinitions>
@@ -779,7 +797,7 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="可执行文件" Style="{StaticResource RowLabelStyle}"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding ExecutablePath}" ToolTip="{Binding ExecutablePath}" Style="{StaticResource RowValueStyle}"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding ExecutablePathDisplay}" ToolTip="{Binding ExecutablePathToolTip}" Style="{StaticResource RowValueStyle}"/>
                                     <Button Grid.Column="3" Content="浏览" Command="{Binding BrowseExecutableCommand}" Style="{StaticResource FlatTextButtonStyle}"/>
                                     <Button Grid.Column="4" Content="&#xE76C;" Command="{Binding OpenExecutableDirCommand}" Style="{StaticResource FlatTextButtonStyle}" FontFamily="Segoe MDL2 Assets"/>
                                 </Grid>
@@ -795,7 +813,7 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="配置文件" Style="{StaticResource RowLabelStyle}"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding ConfigPath}" ToolTip="{Binding ConfigPath}" Style="{StaticResource RowValueStyle}"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding ConfigPathDisplay}" ToolTip="{Binding ConfigPathToolTip}" Style="{StaticResource RowValueStyle}"/>
                                     <Button Grid.Column="3" Content="浏览" Command="{Binding BrowseConfigCommand}" Style="{StaticResource FlatTextButtonStyle}"/>
                                     <Button Grid.Column="4" Content="&#xE76C;" Command="{Binding OpenConfigDirCommand}" Style="{StaticResource FlatTextButtonStyle}" FontFamily="Segoe MDL2 Assets"/>
                                 </Grid>
@@ -806,12 +824,10 @@
                                         <ColumnDefinition Width="0"/>
                                         <ColumnDefinition Width="125"/>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="28"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="管理页 URL" Style="{StaticResource RowLabelStyle}"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding ManagementUrl}" ToolTip="{Binding ManagementUrl}" Style="{StaticResource RowValueStyle}"/>
-                                    <Button Grid.Column="3" Content="&#xE8A7;" Command="{Binding OpenManagementCommand}" Style="{StaticResource FlatTextButtonStyle}" FontFamily="Segoe MDL2 Assets"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding ManagementUrlDisplay}" ToolTip="{Binding ManagementUrlToolTip}" Style="{StaticResource RowValueStyle}"/>
                                 </Grid>
                                 <Border Grid.Row="2" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
 
@@ -823,7 +839,7 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="&#xE968;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="探针 URL" Style="{StaticResource RowLabelStyle}"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding ProbeUrl}" ToolTip="{Binding ProbeUrl}" Style="{StaticResource RowValueStyle}"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding ProbeUrlDisplay}" ToolTip="{Binding ProbeUrlToolTip}" Style="{StaticResource RowValueStyle}"/>
                                 </Grid>
                                 <Border Grid.Row="3" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
 
@@ -836,7 +852,7 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="配置目录" Style="{StaticResource RowLabelStyle}"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding ConfigDirectory}" ToolTip="{Binding ConfigDirectory}" Style="{StaticResource RowValueStyle}"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding ConfigDirectoryDisplay}" ToolTip="{Binding ConfigDirectoryToolTip}" Style="{StaticResource RowValueStyle}"/>
                                     <Button Grid.Column="3" Content="&#xE76C;" Command="{Binding OpenConfigDirCommand}" Style="{StaticResource FlatTextButtonStyle}" FontFamily="Segoe MDL2 Assets"/>
                                 </Grid>
                                 <Border Grid.Row="4" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
@@ -850,7 +866,7 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="日志目录" Style="{StaticResource RowLabelStyle}"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding LogDirectory}" ToolTip="{Binding LogDirectory}" Style="{StaticResource RowValueStyle}"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding LogDirectoryDisplay}" ToolTip="{Binding LogDirectoryToolTip}" Style="{StaticResource RowValueStyle}"/>
                                     <Button Grid.Column="3" Content="&#xE76C;" Command="{Binding OpenLogsCommand}" Style="{StaticResource FlatTextButtonStyle}" FontFamily="Segoe MDL2 Assets"/>
                                 </Grid>
                                 <Border Grid.Row="5" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
@@ -863,7 +879,7 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="认证目录" Style="{StaticResource RowLabelStyle}"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding AuthDirectory}" ToolTip="{Binding AuthDirectory}" Style="{StaticResource RowValueStyle}"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding AuthDirectoryDisplay}" ToolTip="{Binding AuthDirectoryToolTip}" Style="{StaticResource RowValueStyle}"/>
                                 </Grid>
                                 <Border Grid.Row="6" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
 

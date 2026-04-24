@@ -12,6 +12,7 @@ public partial class LauncherDialogWindow
     public LauncherDialogWindow(string caption, string message, MessageBoxButton button, MessageBoxImage image)
     {
         InitializeComponent();
+        WindowThemeResources.ApplyDialogResources(Resources, WindowThemeResources.IsDarkModeEnabled());
         DataContext = new LauncherDialogViewModel(caption, message, image);
         BuildButtons(button);
     }

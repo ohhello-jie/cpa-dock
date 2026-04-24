@@ -27,7 +27,13 @@
         <SolidColorBrush x:Key="DialogInkBrush" Color="#142233"/>
         <SolidColorBrush x:Key="DialogMutedBrush" Color="#536376"/>
         <SolidColorBrush x:Key="DialogLineBrush" Color="#D9E2EC"/>
+        <SolidColorBrush x:Key="DialogWindowEdgeBrush" Color="#EAF1F8"/>
         <SolidColorBrush x:Key="DialogSurfaceBrush" Color="#F7FBFE"/>
+        <SolidColorBrush x:Key="DialogActionBrush" Color="#F8FBFE"/>
+        <SolidColorBrush x:Key="DialogActionHoverBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="DialogActionPressedBrush" Color="#EDF4FA"/>
+        <SolidColorBrush x:Key="DialogPrimaryHoverBrush" Color="#3FA36C"/>
+        <SolidColorBrush x:Key="DialogPrimaryPressedBrush" Color="#2F8C5A"/>
         <LinearGradientBrush x:Key="DialogBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
             <GradientStop Color="#F7FAFD" Offset="0"/>
             <GradientStop Color="#EAF1F8" Offset="1"/>
@@ -41,10 +47,10 @@
             <Setter Property="Height" Value="38"/>
             <Setter Property="MinWidth" Value="88"/>
             <Setter Property="Padding" Value="16,0"/>
-            <Setter Property="Background" Value="#F8FBFE"/>
-            <Setter Property="BorderBrush" Value="#DDE7F0"/>
+            <Setter Property="Background" Value="{DynamicResource DialogActionBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource DialogLineBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="{StaticResource DialogInkBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource DialogInkBrush}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Template">
@@ -55,15 +61,17 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="8">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#FFFFFF"/>
-                                <Setter TargetName="Root" Property="BorderBrush" Value="#C9D7E6"/>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource DialogActionHoverBrush}"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource DialogLineBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#EDF4FA"/>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource DialogActionPressedBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -72,7 +80,7 @@
         </Style>
 
         <Style x:Key="DialogPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogButtonStyle}">
-            <Setter Property="Background" Value="{StaticResource DialogPrimaryBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource DialogPrimaryBrush}"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Template">
@@ -89,12 +97,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#3FA36C"/>
-                                <Setter TargetName="Root" Property="BorderBrush" Value="#3FA36C"/>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource DialogPrimaryHoverBrush}"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource DialogPrimaryHoverBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#2F8C5A"/>
-                                <Setter TargetName="Root" Property="BorderBrush" Value="#2F8C5A"/>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource DialogPrimaryPressedBrush}"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource DialogPrimaryPressedBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -103,8 +111,8 @@
         </Style>
     </Window.Resources>
 
-    <Border Background="{StaticResource DialogBackgroundBrush}"
-            BorderBrush="#EAF1F8"
+    <Border Background="{DynamicResource DialogBackgroundBrush}"
+            BorderBrush="{DynamicResource DialogWindowEdgeBrush}"
             BorderThickness="1"
             CornerRadius="12">
 
@@ -142,24 +150,24 @@
                     <TextBlock Text="{Binding Caption}"
                                FontSize="20"
                                FontWeight="Bold"
-                               Foreground="{StaticResource DialogInkBrush}"/>
+                               Foreground="{DynamicResource DialogInkBrush}"/>
                     <TextBlock Text="{Binding ToneText}"
                                FontSize="12"
-                               Foreground="{StaticResource DialogMutedBrush}"
+                               Foreground="{DynamicResource DialogMutedBrush}"
                                Margin="0,4,0,0"/>
                 </StackPanel>
             </Grid>
 
             <Border Grid.Row="2"
-                    Background="{StaticResource DialogSurfaceBrush}"
-                    BorderBrush="{StaticResource DialogLineBrush}"
+                    Background="{DynamicResource DialogSurfaceBrush}"
+                    BorderBrush="{DynamicResource DialogLineBrush}"
                     BorderThickness="1"
                     CornerRadius="10"
                     Padding="16,14">
                 <TextBlock Text="{Binding Message}"
                            FontSize="14"
                            LineHeight="22"
-                           Foreground="{StaticResource DialogInkBrush}"
+                           Foreground="{DynamicResource DialogInkBrush}"
                            TextWrapping="Wrap"/>
             </Border>
 
