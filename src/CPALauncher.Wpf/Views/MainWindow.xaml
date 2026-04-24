@@ -40,6 +40,25 @@
         <SolidColorBrush x:Key="PanelBrush" Color="#EAF1F8"/>
         <SolidColorBrush x:Key="SuccessBrush" Color="#44A36E"/>
         <SolidColorBrush x:Key="WarningBrush" Color="#DD8A1F"/>
+        <SolidColorBrush x:Key="WindowEdgeBrush" Color="#E8F0F8"/>
+        <SolidColorBrush x:Key="CardBorderBrush" Color="#F7FBFF"/>
+        <SolidColorBrush x:Key="ActionBrush" Color="#F8FBFE"/>
+        <SolidColorBrush x:Key="ActionHoverBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="ActionPressedBrush" Color="#EDF4FA"/>
+        <SolidColorBrush x:Key="ChromeHoverBrush" Color="#DDE7F0"/>
+        <SolidColorBrush x:Key="ChromePressedBrush" Color="#CEDCE8"/>
+        <SolidColorBrush x:Key="SwitchTrackBrush" Color="#CBD5DF"/>
+        <SolidColorBrush x:Key="SwitchThumbBrush" Color="#F8FBFE"/>
+        <SolidColorBrush x:Key="SwitchCheckedBrush" Color="#59A778"/>
+        <SolidColorBrush x:Key="StatusHaloBrush" Color="#CFEADF"/>
+        <SolidColorBrush x:Key="DecorativeStrokeBrush" Color="#D9E3EE"/>
+        <SolidColorBrush x:Key="DecorativeStrokeAltBrush" Color="#E2EAF2"/>
+        <SolidColorBrush x:Key="VersionCardBrush" Color="#F7FBFE"/>
+        <SolidColorBrush x:Key="WarningCardBrush" Color="#F3EADF"/>
+        <SolidColorBrush x:Key="WarningTextBrush" Color="#8C530F"/>
+        <SolidColorBrush x:Key="WarningStrongTextBrush" Color="#9A4D08"/>
+        <SolidColorBrush x:Key="OverlayPanelBrush" Color="#F8FBFE"/>
+        <SolidColorBrush x:Key="DropOverlayScrimBrush" Color="#660D1722"/>
 
         <LinearGradientBrush x:Key="WindowBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
             <GradientStop Color="#F7FAFD" Offset="0"/>
@@ -61,8 +80,8 @@
         </LinearGradientBrush>
 
         <Style x:Key="GlassCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource CardBrush}"/>
-            <Setter Property="BorderBrush" Value="#F7FBFF"/>
+            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="10"/>
             <Setter Property="Effect">
@@ -77,7 +96,7 @@
             <Setter Property="Height" Value="36"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
@@ -91,10 +110,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#DDE7F0"/>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ChromeHoverBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#CEDCE8"/>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ChromePressedBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -107,7 +126,7 @@
             <Setter Property="Height" Value="36"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
             <Setter Property="FontSize" Value="18"/>
             <Setter Property="Template">
@@ -120,7 +139,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#DDE7F0"/>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ChromeHoverBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.45"/>
@@ -177,10 +196,10 @@
             <Setter Property="Height" Value="48"/>
             <Setter Property="MinWidth" Value="104"/>
             <Setter Property="Padding" Value="14,0"/>
-            <Setter Property="Background" Value="#F8FBFE"/>
-            <Setter Property="BorderBrush" Value="#E1E9F2"/>
+            <Setter Property="Background" Value="{DynamicResource ActionBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Template">
@@ -195,7 +214,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#FFFFFF"/>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ActionHoverBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Root" Property="Opacity" Value="0.45"/>
@@ -227,7 +246,7 @@
             <Setter Property="Padding" Value="8,0"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -237,7 +256,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#DDE7F0"/>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ChromeHoverBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.45"/>
@@ -252,10 +271,10 @@
             <Setter Property="Height" Value="40"/>
             <Setter Property="MinWidth" Value="170"/>
             <Setter Property="Padding" Value="18,0"/>
-            <Setter Property="Background" Value="#F8FBFE"/>
-            <Setter Property="BorderBrush" Value="#DDE7F0"/>
+            <Setter Property="Background" Value="{DynamicResource ActionBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Template">
@@ -270,11 +289,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#FFFFFF"/>
-                                <Setter TargetName="Root" Property="BorderBrush" Value="#C9D7E6"/>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ActionHoverBrush}"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#EDF4FA"/>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ActionPressedBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Root" Property="Opacity" Value="0.48"/>
@@ -293,7 +312,7 @@
         <Style x:Key="OptionSwitchStyle" TargetType="ToggleButton">
             <Setter Property="Width" Value="42"/>
             <Setter Property="Height" Value="24"/>
-            <Setter Property="Background" Value="#CBD5DF"/>
+            <Setter Property="Background" Value="{DynamicResource SwitchTrackBrush}"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -306,13 +325,13 @@
                             <Ellipse x:Name="Thumb"
                                      Width="18"
                                      Height="18"
-                                     Fill="#F8FBFE"
+                                     Fill="{DynamicResource SwitchThumbBrush}"
                                      HorizontalAlignment="Left"
                                      Margin="3,0,0,0"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Track" Property="Background" Value="#59A778"/>
+                                <Setter TargetName="Track" Property="Background" Value="{DynamicResource SwitchCheckedBrush}"/>
                                 <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
                                 <Setter TargetName="Thumb" Property="Margin" Value="0,0,3,0"/>
                             </Trigger>
@@ -326,30 +345,28 @@
         </Style>
 
         <Style x:Key="RowLabelStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
             <Setter Property="FontSize" Value="15"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
         <Style x:Key="RowValueStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
         </Style>
+
     </hc:Window.Resources>
 
     <hc:Window.DataContext>
         <vm:MainViewModel/>
     </hc:Window.DataContext>
 
-    <Border Background="{StaticResource WindowBackgroundBrush}"
-            BorderBrush="#C8D4E1"
+    <Border Background="{DynamicResource WindowBackgroundBrush}"
+            BorderBrush="{DynamicResource WindowEdgeBrush}"
             BorderThickness="1"
             CornerRadius="10">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="22" ShadowDepth="3" Opacity="0.17" Color="#51677D"/>
-        </Border.Effect>
 
         <Grid>
             <Grid.RowDefinitions>
@@ -360,6 +377,7 @@
 
             <Grid Grid.Row="0"
                   Margin="22,0,20,0"
+                  Background="Transparent"
                   MouseLeftButtonDown="OnTitleBarMouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -378,7 +396,7 @@
                     <TextBlock Text="CPALauncher"
                                FontSize="19"
                                FontWeight="SemiBold"
-                               Foreground="{StaticResource InkBrush}"
+                               Foreground="{DynamicResource InkBrush}"
                                Margin="12,1,0,0"
                                VerticalAlignment="Center"/>
                 </StackPanel>
@@ -404,7 +422,7 @@
             <Grid Grid.Row="1" Margin="34,18,34,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="188"/>
-                    <RowDefinition Height="62"/>
+                    <RowDefinition Height="68"/>
                     <RowDefinition Height="300"/>
                     <RowDefinition Height="*" MinHeight="160"/>
                 </Grid.RowDefinitions>
@@ -421,7 +439,7 @@
                     <Grid Margin="24,26">
                         <Ellipse Width="260"
                                  Height="260"
-                                 Stroke="#D9E3EE"
+                                 Stroke="{DynamicResource DecorativeStrokeBrush}"
                                  StrokeThickness="1"
                                  Opacity="0.55"
                                  HorizontalAlignment="Right"
@@ -429,7 +447,7 @@
                                  Margin="0,-80,-82,0"/>
                         <Ellipse Width="380"
                                  Height="220"
-                                 Stroke="#E2EAF2"
+                                 Stroke="{DynamicResource DecorativeStrokeAltBrush}"
                                  StrokeThickness="1"
                                  Opacity="0.6"
                                  HorizontalAlignment="Right"
@@ -447,7 +465,7 @@
                                   Width="82"
                                   Height="82"
                                   VerticalAlignment="Center">
-                                <Ellipse Fill="#CFEADF"/>
+                                <Ellipse Fill="{DynamicResource StatusHaloBrush}"/>
                                 <Ellipse Width="58"
                                          Height="58"
                                          Fill="{Binding StatusForegroundBrush}"
@@ -465,27 +483,36 @@
                                            VerticalAlignment="Center"/>
                             </Grid>
 
-                            <StackPanel Grid.Column="1"
-                                        VerticalAlignment="Center"
-                                        Margin="22,0,18,0">
+                            <Grid Grid.Column="1"
+                                  VerticalAlignment="Center"
+                                  Margin="22,0,18,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
                                 <TextBlock Text="{Binding StatusText}"
                                            FontSize="30"
                                            FontWeight="Bold"
+                                           TextTrimming="CharacterEllipsis"
                                            Foreground="{Binding StatusForegroundBrush}"/>
-                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Grid Grid.Row="1" Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
                                     <Ellipse Width="9"
                                              Height="9"
                                              Fill="{Binding StatusForegroundBrush}"
                                              VerticalAlignment="Center"
                                              Margin="0,0,10,0"/>
-                                    <TextBlock Text="{Binding StatusDetail}"
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding StatusDetail}"
                                                FontSize="14"
-                                               Foreground="{StaticResource MutedBrush}"
+                                               Foreground="{DynamicResource MutedBrush}"
                                                TextTrimming="CharacterEllipsis"
-                                               MaxWidth="310"
                                                ToolTip="{Binding StatusDetail}"/>
-                                </StackPanel>
-                            </StackPanel>
+                                </Grid>
+                            </Grid>
 
                             <StackPanel Grid.Column="2"
                                         Orientation="Horizontal"
@@ -560,13 +587,13 @@
                         <StackPanel Margin="18,16,18,10">
                             <Grid Margin="0,0,0,10">
                                 <TextBlock Text="版本"
-                                           Foreground="{StaticResource InkBrush}"
+                                           Foreground="{DynamicResource InkBrush}"
                                            FontSize="16"
                                            FontWeight="SemiBold"
                                            VerticalAlignment="Center"/>
                                 <Button Command="{Binding CheckAllUpdatesCommand}"
                                         Style="{StaticResource FlatTextButtonStyle}"
-                                        BorderBrush="{StaticResource LineBrush}"
+                                        BorderBrush="{DynamicResource LineBrush}"
                                         BorderThickness="1"
                                         Height="30"
                                         MinWidth="92"
@@ -578,7 +605,7 @@
                                 </Button>
                             </Grid>
 
-                            <Border Background="#F7FBFE" CornerRadius="9" Padding="12,8" Margin="0,0,0,8">
+                            <Border Background="{DynamicResource VersionCardBrush}" CornerRadius="9" Padding="12,8" Margin="0,0,0,8">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -586,11 +613,11 @@
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
                                             <TextBlock Text="CPALauncher"
-                                                       Foreground="{StaticResource InkBrush}"
+                                                       Foreground="{DynamicResource InkBrush}"
                                                        FontSize="14"
                                                        FontWeight="SemiBold"/>
                                             <TextBlock Text="{Binding LauncherCurrentVersionDisplay}"
-                                                       Foreground="{StaticResource InkBrush}"
+                                                       Foreground="{DynamicResource InkBrush}"
                                                        FontSize="14"
                                                        Margin="10,0,0,0"/>
                                         </StackPanel>
@@ -602,7 +629,7 @@
                                             <Ellipse Width="8" Height="8" Fill="#E99B25" VerticalAlignment="Center" Margin="0,0,9,0"/>
                                             <TextBlock Grid.Column="1"
                                                        Text="{Binding LauncherUpdateCardText}"
-                                                       Foreground="#8C530F"
+                                                       Foreground="{DynamicResource WarningTextBrush}"
                                                        FontSize="12"
                                                        TextTrimming="CharacterEllipsis"/>
                                         </Grid>
@@ -610,7 +637,7 @@
                                 </Grid>
                             </Border>
 
-                            <Border Background="#F3EADF" CornerRadius="9" Padding="12,8">
+                            <Border Background="{DynamicResource WarningCardBrush}" CornerRadius="9" Padding="12,8">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -618,11 +645,11 @@
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
                                             <TextBlock Text="CPA"
-                                                       Foreground="{StaticResource InkBrush}"
+                                                       Foreground="{DynamicResource InkBrush}"
                                                        FontSize="14"
                                                        FontWeight="SemiBold"/>
                                             <TextBlock Text="{Binding CurrentCpaVersionDisplay}"
-                                                       Foreground="{StaticResource InkBrush}"
+                                                       Foreground="{DynamicResource InkBrush}"
                                                        FontSize="14"
                                                        Margin="10,0,0,0"/>
                                         </StackPanel>
@@ -634,14 +661,15 @@
                                             <Ellipse Width="8" Height="8" Fill="#E99B25" VerticalAlignment="Center" Margin="0,0,9,0"/>
                                             <TextBlock Grid.Column="1"
                                                        Text="{Binding UpdateCardText}"
-                                                       Foreground="#9A4D08"
+                                                       Foreground="{DynamicResource WarningStrongTextBrush}"
                                                        FontSize="12"
                                                        TextTrimming="CharacterEllipsis"/>
                                         </Grid>
                                         <ProgressBar Value="{Binding UpdateProgress}"
                                                      Maximum="100"
-                                                     Height="5"
-                                                     Margin="0,9,0,0"
+                                                     Height="16"
+                                                     FontSize="10"
+                                                     Margin="0,8,0,0"
                                                      Visibility="{Binding UpdateProgressVisibility}"/>
                                     </StackPanel>
                                 </Grid>
@@ -649,7 +677,7 @@
                         </StackPanel>
 
                         <Border Grid.Row="1"
-                                BorderBrush="{StaticResource LineBrush}"
+                                BorderBrush="{DynamicResource LineBrush}"
                                 BorderThickness="0,1,0,0">
                             <UniformGrid Columns="2" Margin="12,0">
                                 <Button Command="{Binding OpenRepositoryCommand}"
@@ -692,7 +720,7 @@
                             <TextBlock Text="配置"
                                        FontSize="17"
                                        FontWeight="SemiBold"
-                                       Foreground="{StaticResource InkBrush}"
+                                       Foreground="{DynamicResource InkBrush}"
                                        Margin="0,0,0,8"/>
 
                             <Grid Grid.Row="1">
@@ -715,13 +743,13 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="28"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="可执行文件" Style="{StaticResource RowLabelStyle}"/>
                                     <TextBlock Grid.Column="2" Text="{Binding ExecutablePath}" ToolTip="{Binding ExecutablePath}" Style="{StaticResource RowValueStyle}"/>
                                     <Button Grid.Column="3" Content="浏览" Command="{Binding BrowseExecutableCommand}" Style="{StaticResource FlatTextButtonStyle}"/>
                                     <Button Grid.Column="4" Content="&#xE76C;" Command="{Binding OpenExecutableDirCommand}" Style="{StaticResource FlatTextButtonStyle}" FontFamily="Segoe MDL2 Assets"/>
                                 </Grid>
-                                <Border Grid.Row="0" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                <Border Grid.Row="0" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
 
                                 <Grid Grid.Row="1">
                                     <Grid.ColumnDefinitions>
@@ -731,13 +759,13 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="28"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="配置文件" Style="{StaticResource RowLabelStyle}"/>
                                     <TextBlock Grid.Column="2" Text="{Binding ConfigPath}" ToolTip="{Binding ConfigPath}" Style="{StaticResource RowValueStyle}"/>
                                     <Button Grid.Column="3" Content="浏览" Command="{Binding BrowseConfigCommand}" Style="{StaticResource FlatTextButtonStyle}"/>
                                     <Button Grid.Column="4" Content="&#xE76C;" Command="{Binding OpenConfigDirCommand}" Style="{StaticResource FlatTextButtonStyle}" FontFamily="Segoe MDL2 Assets"/>
                                 </Grid>
-                                <Border Grid.Row="1" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                <Border Grid.Row="1" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
 
                                 <Grid Grid.Row="2">
                                     <Grid.ColumnDefinitions>
@@ -746,12 +774,12 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="28"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="管理页 URL" Style="{StaticResource RowLabelStyle}"/>
                                     <TextBlock Grid.Column="2" Text="{Binding ManagementUrl}" ToolTip="{Binding ManagementUrl}" Style="{StaticResource RowValueStyle}"/>
                                     <Button Grid.Column="3" Content="&#xE8A7;" Command="{Binding OpenManagementCommand}" Style="{StaticResource FlatTextButtonStyle}" FontFamily="Segoe MDL2 Assets"/>
                                 </Grid>
-                                <Border Grid.Row="2" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                <Border Grid.Row="2" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
 
                                 <Grid Grid.Row="3">
                                     <Grid.ColumnDefinitions>
@@ -759,11 +787,11 @@
                                         <ColumnDefinition Width="125"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE968;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE968;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="探针 URL" Style="{StaticResource RowLabelStyle}"/>
                                     <TextBlock Grid.Column="2" Text="{Binding ProbeUrl}" ToolTip="{Binding ProbeUrl}" Style="{StaticResource RowValueStyle}"/>
                                 </Grid>
-                                <Border Grid.Row="3" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                <Border Grid.Row="3" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
 
                                 <Grid Grid.Row="4">
                                     <Grid.ColumnDefinitions>
@@ -772,12 +800,12 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="28"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="配置目录" Style="{StaticResource RowLabelStyle}"/>
                                     <TextBlock Grid.Column="2" Text="{Binding ConfigDirectory}" ToolTip="{Binding ConfigDirectory}" Style="{StaticResource RowValueStyle}"/>
                                     <Button Grid.Column="3" Content="&#xE76C;" Command="{Binding OpenConfigDirCommand}" Style="{StaticResource FlatTextButtonStyle}" FontFamily="Segoe MDL2 Assets"/>
                                 </Grid>
-                                <Border Grid.Row="4" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                <Border Grid.Row="4" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
 
                                 <Grid Grid.Row="5">
                                     <Grid.ColumnDefinitions>
@@ -786,12 +814,12 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="28"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="日志目录" Style="{StaticResource RowLabelStyle}"/>
                                     <TextBlock Grid.Column="2" Text="{Binding LogDirectory}" ToolTip="{Binding LogDirectory}" Style="{StaticResource RowValueStyle}"/>
                                     <Button Grid.Column="3" Content="&#xE76C;" Command="{Binding OpenLogsCommand}" Style="{StaticResource FlatTextButtonStyle}" FontFamily="Segoe MDL2 Assets"/>
                                 </Grid>
-                                <Border Grid.Row="5" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                <Border Grid.Row="5" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
 
                                 <Grid Grid.Row="6">
                                     <Grid.ColumnDefinitions>
@@ -799,11 +827,11 @@
                                         <ColumnDefinition Width="125"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="认证目录" Style="{StaticResource RowLabelStyle}"/>
                                     <TextBlock Grid.Column="2" Text="{Binding AuthDirectory}" ToolTip="{Binding AuthDirectory}" Style="{StaticResource RowValueStyle}"/>
                                 </Grid>
-                                <Border Grid.Row="6" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                <Border Grid.Row="6" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
 
                                 <Grid Grid.Row="7">
                                     <Grid.ColumnDefinitions>
@@ -813,11 +841,11 @@
                                         <ColumnDefinition Width="64"/>
                                         <ColumnDefinition Width="28"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="管理密钥" Style="{StaticResource RowLabelStyle}"/>
                                     <TextBlock Grid.Column="2" Text="{Binding ManagementSecretKeyDisplay}" ToolTip="{Binding ManagementSecretKeyToolTip}" Style="{StaticResource RowValueStyle}"/>
-                                    <Button Grid.Column="3" Content="复制" Command="{Binding CopyManagementSecretKeyCommand}" Style="{StaticResource FlatTextButtonStyle}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1"/>
-                                    <TextBlock Grid.Column="4" Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    <Button Grid.Column="3" Content="复制" Command="{Binding CopyManagementSecretKeyCommand}" Style="{StaticResource FlatTextButtonStyle}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"/>
+                                    <TextBlock Grid.Column="4" Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                 </Grid>
                             </Grid>
                         </Grid>
@@ -834,11 +862,11 @@
                             <TextBlock Text="启动器选项"
                                        FontSize="17"
                                        FontWeight="SemiBold"
-                                       Foreground="{StaticResource InkBrush}"
+                                       Foreground="{DynamicResource InkBrush}"
                                        Margin="0,0,0,8"/>
 
                             <Border Grid.Row="1"
-                                    BorderBrush="{StaticResource LineBrush}"
+                                    BorderBrush="{DynamicResource LineBrush}"
                                     BorderThickness="1"
                                     CornerRadius="8">
                                 <Grid>
@@ -858,11 +886,11 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE7E8;" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="&#xE7E8;" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                         <TextBlock Grid.Column="1" Text="开机启动" Style="{StaticResource RowLabelStyle}"/>
                                         <ToggleButton Grid.Column="2" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding LaunchOnWindowsStartup}"/>
                                     </Grid>
-                                    <Border Grid.Row="0" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                    <Border Grid.Row="0" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
 
                                     <Grid Grid.Row="1" Margin="14,0">
                                         <Grid.ColumnDefinitions>
@@ -870,11 +898,11 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE81A;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="&#xE81A;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                         <TextBlock Grid.Column="1" Text="关闭到托盘" Style="{StaticResource RowLabelStyle}"/>
                                         <ToggleButton Grid.Column="2" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding MinimizeToTrayOnClose}"/>
                                     </Grid>
-                                    <Border Grid.Row="1" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                    <Border Grid.Row="1" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
 
                                     <Grid Grid.Row="2" Margin="14,0">
                                         <Grid.ColumnDefinitions>
@@ -882,11 +910,11 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                         <TextBlock Grid.Column="1" Text="启动后打开管理页" Style="{StaticResource RowLabelStyle}"/>
                                         <ToggleButton Grid.Column="2" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding OpenManagementPageAfterStart}"/>
                                     </Grid>
-                                    <Border Grid.Row="2" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                    <Border Grid.Row="2" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
 
                                     <Grid Grid.Row="3" Margin="14,0">
                                         <Grid.ColumnDefinitions>
@@ -894,11 +922,11 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                         <TextBlock Grid.Column="1" Text="启动时检查更新" Style="{StaticResource RowLabelStyle}"/>
                                         <ToggleButton Grid.Column="2" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding CheckForUpdatesOnStartup}"/>
                                     </Grid>
-                                    <Border Grid.Row="3" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                    <Border Grid.Row="3" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
 
                                     <Grid Grid.Row="4" Margin="14,0">
                                         <Grid.ColumnDefinitions>
@@ -906,11 +934,11 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                         <TextBlock Grid.Column="1" Text="打开时自动拉起服务" Style="{StaticResource RowLabelStyle}"/>
                                         <ToggleButton Grid.Column="2" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding AutoStartService}"/>
                                     </Grid>
-                                    <Border Grid.Row="4" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                    <Border Grid.Row="4" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
 
                                     <Grid Grid.Row="5" Margin="14,0">
                                         <Grid.ColumnDefinitions>
@@ -918,18 +946,25 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                         <TextBlock Grid.Column="1" Text="自动拉起延迟" Style="{StaticResource RowLabelStyle}"/>
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                             <hc:NumericUpDown Value="{Binding AutoStartDelaySeconds}"
                                                               Minimum="0"
                                                               Maximum="600"
                                                               Width="68"
-                                                              Height="25"/>
-                                            <TextBlock Text="秒" FontSize="12" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                                              Height="25"
+                                                              Padding="8,2"
+                                                              Background="{DynamicResource ActionBrush}"
+                                                              BorderBrush="{DynamicResource LineBrush}"
+                                                              BorderThickness="1"
+                                                              Foreground="{DynamicResource InkBrush}"
+                                                              FontSize="13"
+                                                              hc:BorderElement.CornerRadius="7"/>
+                                            <TextBlock Text="秒" FontSize="12" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Margin="6,0,0,0"/>
                                         </StackPanel>
                                     </Grid>
-                                    <Border Grid.Row="5" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                    <Border Grid.Row="5" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
 
                                     <Grid Grid.Row="6" Margin="14,0">
                                         <Grid.ColumnDefinitions>
@@ -937,7 +972,7 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE708;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="&#xE708;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
                                         <TextBlock Grid.Column="1" Text="深色模式" Style="{StaticResource RowLabelStyle}"/>
                                         <ToggleButton Grid.Column="2" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding IsDarkMode}"/>
                                     </Grid>
@@ -958,7 +993,7 @@
                             <TextBlock Text="诊断输出"
                                        FontSize="16"
                                        FontWeight="SemiBold"
-                                       Foreground="{StaticResource InkBrush}"
+                                       Foreground="{DynamicResource InkBrush}"
                                        VerticalAlignment="Center"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button Command="{Binding CopyLogsCommand}" Style="{StaticResource FlatTextButtonStyle}" Margin="0,0,8,0">
@@ -967,7 +1002,7 @@
                                         <TextBlock Text="复制日志"/>
                                     </StackPanel>
                                 </Button>
-                                <Border Width="1" Background="{StaticResource LineBrush}" Margin="0,6,8,6"/>
+                                <Border Width="1" Background="{DynamicResource LineBrush}" Margin="0,6,8,6"/>
                                 <Button Command="{Binding ExportLogsCommand}" Style="{StaticResource FlatTextButtonStyle}" Margin="0,0,8,0">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="15" Margin="0,0,6,0"/>
@@ -983,7 +1018,7 @@
                             </StackPanel>
                         </Grid>
 
-                        <Border BorderBrush="{StaticResource LineBrush}"
+                        <Border BorderBrush="{DynamicResource LineBrush}"
                                 BorderThickness="0,1,0,0"
                                 Padding="0,4,0,0">
                             <ListBox x:Name="DiagnosticListBox"
@@ -1002,7 +1037,7 @@
                                         <Setter Property="Template">
                                             <Setter.Value>
                                                 <ControlTemplate TargetType="ListBoxItem">
-                                                    <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1">
+                                                    <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
                                                         <ContentPresenter Margin="{TemplateBinding Padding}"/>
                                                     </Border>
                                                 </ControlTemplate>
@@ -1015,7 +1050,7 @@
                                         <TextBlock Text="{Binding}"
                                                    FontFamily="Cascadia Mono, Consolas"
                                                    FontSize="12"
-                                                   Foreground="{StaticResource MutedBrush}"
+                                                   Foreground="{DynamicResource MutedBrush}"
                                                    TextTrimming="CharacterEllipsis"/>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -1037,7 +1072,7 @@
                              Margin="0,0,10,0"/>
                     <TextBlock Text="{Binding FooterStatusText}"
                                FontSize="13"
-                               Foreground="{StaticResource MutedBrush}"/>
+                               Foreground="{DynamicResource MutedBrush}"/>
                 </StackPanel>
             </Grid>
 
@@ -1046,8 +1081,8 @@
                     Margin="0,76,34,0"
                     Padding="16,12"
                     CornerRadius="10"
-                    Background="#F8FBFE"
-                    BorderBrush="{StaticResource LineBrush}"
+                    Background="{DynamicResource OverlayPanelBrush}"
+                    BorderBrush="{DynamicResource LineBrush}"
                     BorderThickness="1"
                     Opacity="0.98"
                     Panel.ZIndex="20"
@@ -1058,13 +1093,21 @@
                 </Border.Effect>
                 <TextBlock Text="{Binding ImportNoticeText}"
                            FontSize="13"
-                           Foreground="{StaticResource InkBrush}"
+                           Foreground="{DynamicResource InkBrush}"
                            TextWrapping="Wrap"
                            MaxWidth="320"/>
             </Border>
 
-            <Grid Panel.ZIndex="15"
-                  Background="#660D1722"
+            <StackPanel x:Name="MainGrowlPanel"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Width="360"
+                        Margin="0,76,34,0"
+                        Panel.ZIndex="25"/>
+
+            <Grid Grid.RowSpan="3"
+                  Panel.ZIndex="15"
+                  Background="{DynamicResource DropOverlayScrimBrush}"
                   IsHitTestVisible="False"
                   Visibility="{Binding IsTokenDropOverlayVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Border HorizontalAlignment="Center"
@@ -1072,7 +1115,7 @@
                         Width="520"
                         Padding="28,24"
                         CornerRadius="16"
-                        Background="#F8FBFE"
+                        Background="{DynamicResource OverlayPanelBrush}"
                         BorderThickness="2"
                         BorderBrush="{Binding TokenDropAccentBrush}">
                     <Border.Effect>
@@ -1095,13 +1138,13 @@
                         <TextBlock Text="{Binding TokenDropTitle}"
                                    FontSize="22"
                                    FontWeight="Bold"
-                                   Foreground="{StaticResource InkBrush}"
+                                   Foreground="{DynamicResource InkBrush}"
                                    HorizontalAlignment="Center"
                                    TextAlignment="Center"
                                    Margin="0,0,0,8"/>
                         <TextBlock Text="{Binding TokenDropSubtitle}"
                                    FontSize="13"
-                                   Foreground="{StaticResource MutedBrush}"
+                                   Foreground="{DynamicResource MutedBrush}"
                                    HorizontalAlignment="Center"
                                    TextAlignment="Center"
                                    TextWrapping="Wrap"

@@ -35,6 +35,7 @@ public class MainViewModel : ViewModelBase
     private readonly DispatcherTimer _importNoticeTimer;
 
     private LauncherStatus _currentStatus = LauncherStatus.Unconfigured;
+    private StatusPalette _statusPalette = StatusPalette.Neutral;
     private LauncherSettings _settings = new();
     private CpaRuntimeInfo? _runtimeInfo;
 
@@ -273,6 +274,7 @@ public class MainViewModel : ViewModelBase
                 _settings.UseDarkTheme = value;
                 SaveSettings();
                 ApplyTheme(value);
+                ApplyStatusPalette();
             }
         }
     }
@@ -655,6 +657,7 @@ public class MainViewModel : ViewModelBase
         _isDarkMode = _settings.UseDarkTheme;
         OnPropertyChanged(nameof(IsDarkMode));
         ApplyTheme(_isDarkMode);
+        ApplyStatusPalette();
 
         _checkForUpdatesOnStartup = _settings.CheckForUpdatesOnStartup;
         OnPropertyChanged(nameof(CheckForUpdatesOnStartup));
@@ -753,10 +756,10 @@ public class MainViewModel : ViewModelBase
         if (_runtimeInfo == null)
         {
             _currentStatus = LauncherStatus.Unconfigured;
+            _statusPalette = StatusPalette.Neutral;
             StatusText = "未配置";
             StatusDetail = GetUnconfiguredStatusDetail();
-            StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(232, 236, 241));
-            StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(32, 31, 30));
+            ApplyStatusPalette();
             StatusGlyph = "\uE783";
             FooterStatusText = "等待完成配置";
             return;
@@ -767,44 +770,70 @@ public class MainViewModel : ViewModelBase
         if (isManaged && serviceReachable)
         {
             _currentStatus = LauncherStatus.Running;
+            _statusPalette = StatusPalette.Running;
             StatusText = "运行中";
             StatusDetail = "CPA 已运行，当前由启动器托管。";
-            StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(209, 241, 224));
-            StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(15, 85, 43));
+            ApplyStatusPalette();
             StatusGlyph = "\uE73E";
             FooterStatusText = "服务运行正常";
         }
         else if (isManaged && !serviceReachable)
         {
             _currentStatus = LauncherStatus.Starting;
+            _statusPalette = StatusPalette.Starting;
             StatusText = "启动中";
             StatusDetail = "CPA 进程已启动，正在等待服务就绪...";
-            StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(255, 242, 204));
-            StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(120, 79, 0));
+            ApplyStatusPalette();
             StatusGlyph = "\uE895";
             FooterStatusText = "服务正在启动";
         }
         else if (!isManaged && serviceReachable)
         {
             _currentStatus = LauncherStatus.Running;
+            _statusPalette = StatusPalette.External;
             StatusText = "外部运行";
             StatusDetail = "CPA 正在运行，但不由启动器托管（可能由其他方式启动）。";
-            StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(222, 236, 255));
-            StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(0, 74, 173));
+            ApplyStatusPalette();
             StatusGlyph = "\uE8A7";
             FooterStatusText = "检测到外部 CPA 实例";
         }
         else
         {
             _currentStatus = LauncherStatus.Stopped;
+            _statusPalette = StatusPalette.Stopped;
             StatusText = "已停止";
             StatusDetail = "CPA 当前未运行。";
-            StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(238, 238, 238));
-            StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(66, 66, 66));
+            ApplyStatusPalette();
             StatusGlyph = "\uE71A";
             FooterStatusText = "服务已停止";
         }
     }
+
+    private void ApplyStatusPalette()
+    {
+        var (background, foreground) = (_statusPalette, _isDarkMode) switch
+        {
+            (StatusPalette.Neutral, false) => ("#E8ECF1", "#201F1E"),
+            (StatusPalette.Neutral, true) => ("#243247", "#AEBED1"),
+            (StatusPalette.Stopped, false) => ("#EEEEEE", "#424242"),
+            (StatusPalette.Stopped, true) => ("#263448", "#AEBED1"),
+            (StatusPalette.Running, false) => ("#D1F1E0", "#0F552B"),
+            (StatusPalette.Running, true) => ("#173827", "#4FCB86"),
+            (StatusPalette.Starting, false) => ("#FFF2CC", "#784F00"),
+            (StatusPalette.Starting, true) => ("#3A2E17", "#E5AE4F"),
+            (StatusPalette.External, false) => ("#DEECFF", "#004AAD"),
+            (StatusPalette.External, true) => ("#19324F", "#64A8FF"),
+            (StatusPalette.Failed, false) => ("#FFE2E2", "#A30000"),
+            (StatusPalette.Failed, true) => ("#3F2024", "#FF7A7A"),
+            _ => ("#E8ECF1", "#201F1E"),
+        };
+
+        StatusBackgroundBrush = CreateBrush(background);
+        StatusForegroundBrush = CreateBrush(foreground);
+    }
+
+    private static SolidColorBrush CreateBrush(string color)
+        => new((Color)ColorConverter.ConvertFromString(color));
 
     private bool CanStart() => _currentStatus == LauncherStatus.Stopped || _currentStatus == LauncherStatus.StartFailed;
     private bool CanStop() => _currentStatus == LauncherStatus.Running || _currentStatus == LauncherStatus.Starting;
@@ -825,10 +854,10 @@ public class MainViewModel : ViewModelBase
         if (!result.Success)
         {
             _currentStatus = LauncherStatus.StartFailed;
+            _statusPalette = StatusPalette.Failed;
             StatusText = "启动失败";
             StatusDetail = result.Message;
-            StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(255, 226, 226));
-            StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(163, 0, 0));
+            ApplyStatusPalette();
             StatusGlyph = "\uE783";
             FooterStatusText = "启动失败";
             MessageBox.Show(result.Message, "启动失败", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -860,10 +889,10 @@ public class MainViewModel : ViewModelBase
     private async Task StopServiceAsync()
     {
         _currentStatus = LauncherStatus.Stopping;
+        _statusPalette = StatusPalette.Starting;
         StatusText = "停止中";
         StatusDetail = "正在停止 CPA 进程...";
-        StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(255, 242, 204));
-        StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(120, 79, 0));
+        ApplyStatusPalette();
 
         var result = await _processManager.StopAsync();
         AddDiagnosticLine($"[launcher] {result.Message}");
@@ -1727,5 +1756,15 @@ public class MainViewModel : ViewModelBase
         }
 
         return "请先配置 CPA 可执行文件和配置文件路径。";
+    }
+
+    private enum StatusPalette
+    {
+        Neutral,
+        Stopped,
+        Running,
+        Starting,
+        External,
+        Failed,
     }
 }

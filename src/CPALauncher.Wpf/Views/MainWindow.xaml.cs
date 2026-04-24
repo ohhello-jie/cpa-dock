@@ -41,6 +41,7 @@ public partial class MainWindow
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        HandyControl.Controls.Growl.Register(LauncherDialog.NotificationToken, MainGrowlPanel);
         SetupTrayIcon();
         SetupAutoScroll();
         SetupLocalThemeSync();
@@ -75,13 +76,39 @@ public partial class MainWindow
         SetSolidResource("CardBrush", isDark ? "#182638" : "#EEF4FA");
         SetSolidResource("CardStrongBrush", isDark ? "#1D2D42" : "#F6FAFE");
         SetSolidResource("PanelBrush", isDark ? "#142131" : "#EAF1F8");
+        SetSolidResource("WindowEdgeBrush", isDark ? "#203148" : "#E8F0F8");
+        SetSolidResource("CardBorderBrush", isDark ? "#2A3D55" : "#F7FBFF");
+        SetSolidResource("ActionBrush", isDark ? "#1B2B3F" : "#F8FBFE");
+        SetSolidResource("ActionHoverBrush", isDark ? "#24364D" : "#FFFFFF");
+        SetSolidResource("ActionPressedBrush", isDark ? "#152236" : "#EDF4FA");
+        SetSolidResource("ChromeHoverBrush", isDark ? "#24364D" : "#DDE7F0");
+        SetSolidResource("ChromePressedBrush", isDark ? "#2A405A" : "#CEDCE8");
+        SetSolidResource("SwitchTrackBrush", isDark ? "#506175" : "#CBD5DF");
+        SetSolidResource("SwitchThumbBrush", isDark ? "#EAF1F8" : "#F8FBFE");
+        SetSolidResource("SwitchCheckedBrush", isDark ? "#5AAE82" : "#59A778");
+        SetSolidResource("StatusHaloBrush", isDark ? "#203F34" : "#CFEADF");
+        SetSolidResource("DecorativeStrokeBrush", isDark ? "#2A3C52" : "#D9E3EE");
+        SetSolidResource("DecorativeStrokeAltBrush", isDark ? "#24364D" : "#E2EAF2");
+        SetSolidResource("VersionCardBrush", isDark ? "#17283B" : "#F7FBFE");
+        SetSolidResource("WarningCardBrush", isDark ? "#342A20" : "#F3EADF");
+        SetSolidResource("WarningTextBrush", isDark ? "#F1B35F" : "#8C530F");
+        SetSolidResource("WarningStrongTextBrush", isDark ? "#F5A94F" : "#9A4D08");
+        SetSolidResource("OverlayPanelBrush", isDark ? "#172638" : "#F8FBFE");
+        SetSolidResource("DropOverlayScrimBrush", isDark ? "#99060D16" : "#660D1722");
 
         Resources["WindowBackgroundBrush"] = CreateBackgroundBrush(isDark);
     }
 
     private void SetSolidResource(string key, string color)
     {
-        Resources[key] = new SolidColorBrush(ParseColor(color));
+        var nextColor = ParseColor(color);
+        if (Resources[key] is SolidColorBrush brush && !brush.IsFrozen)
+        {
+            brush.Color = nextColor;
+            return;
+        }
+
+        Resources[key] = new SolidColorBrush(nextColor);
     }
 
     private static LinearGradientBrush CreateBackgroundBrush(bool isDark)
@@ -152,24 +179,25 @@ public partial class MainWindow
 
     private void OnDiagnosticLinesChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action == NotifyCollectionChangedAction.Add && DiagnosticListBox.Items.Count > 0)
+        if (e.Action != NotifyCollectionChangedAction.Add)
         {
-            var scrollViewer = FindVisualChild<ScrollViewer>(DiagnosticListBox);
-            if (scrollViewer != null)
-            {
-                var isAtBottom = scrollViewer.VerticalOffset >= scrollViewer.ScrollableHeight - 20;
-                if (isAtBottom)
-                {
-                    scrollViewer.ScrollToBottom();
-                    scrollViewer.ScrollToHorizontalOffset(0);
-                }
-            }
-            else
-            {
-                // Fallback: 如果还没渲染出 ScrollViewer
-                DiagnosticListBox.ScrollIntoView(DiagnosticListBox.Items[^1]);
-            }
+            return;
         }
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (DiagnosticListBox.Items.Count <= 0)
+            {
+                return;
+            }
+
+            var lastItem = DiagnosticListBox.Items[DiagnosticListBox.Items.Count - 1];
+            DiagnosticListBox.ScrollIntoView(lastItem);
+
+            var scrollViewer = FindVisualChild<ScrollViewer>(DiagnosticListBox);
+            scrollViewer?.ScrollToBottom();
+            scrollViewer?.ScrollToHorizontalOffset(0);
+        }, DispatcherPriority.Background);
     }
 
     private void OnDragEnter(object sender, DragEventArgs e) => HandleTokenDragPreview(e);
@@ -323,6 +351,7 @@ public partial class MainWindow
     {
         if (_isExiting)
         {
+            HandyControl.Controls.Growl.Unregister(LauncherDialog.NotificationToken, MainGrowlPanel);
             _trayIcon?.Dispose();
             base.OnClosing(e);
             return;
@@ -354,6 +383,7 @@ public partial class MainWindow
             return;
         }
 
+        HandyControl.Controls.Growl.Unregister(LauncherDialog.NotificationToken, MainGrowlPanel);
         _trayIcon?.Dispose();
         base.OnClosing(e);
     }
