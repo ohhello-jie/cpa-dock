@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Net.Http;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -14,6 +15,7 @@ namespace CPALauncher.ViewModels;
 
 public class MainViewModel : ViewModelBase
 {
+    private const string LauncherGitHubRepo = "ohhellojie/cpa-dock";
     private const string ImportRestartingNotice = "已导入凭证，正在自动重启 CPA 以使其生效";
     private const string ImportRestartedNotice = "已导入凭证，CPA 已自动重启并生效";
     private const string ImportRestartFailedNotice = "凭证已导入，但自动重启失败，请手动重启 CPA";
@@ -40,6 +42,8 @@ public class MainViewModel : ViewModelBase
     private string _statusDetail = "请先配置 CPA 可执行文件和配置文件路径。";
     private Brush _statusBackgroundBrush = new SolidColorBrush(Color.FromRgb(232, 236, 241));
     private Brush _statusForegroundBrush = new SolidColorBrush(Color.FromRgb(32, 31, 30));
+    private string _statusGlyph = "\uE7BA";
+    private string _footerStatusText = "服务状态未知";
     private string _managedProcessId = "无";
 
     private string _executablePath = "";
@@ -59,6 +63,7 @@ public class MainViewModel : ViewModelBase
     private bool _checkForUpdatesOnStartup = true;
 
     private string _updateStatusText = "";
+    private string _launcherUpdateStatusText = "";
     private int _updateProgress;
     private bool _isUpdateInProgress;
     private bool _isTokenDropOverlayVisible;
@@ -96,6 +101,18 @@ public class MainViewModel : ViewModelBase
         set => SetProperty(ref _statusForegroundBrush, value);
     }
 
+    public string StatusGlyph
+    {
+        get => _statusGlyph;
+        set => SetProperty(ref _statusGlyph, value);
+    }
+
+    public string FooterStatusText
+    {
+        get => _footerStatusText;
+        set => SetProperty(ref _footerStatusText, value);
+    }
+
     public string ManagedProcessId
     {
         get => _managedProcessId;
@@ -112,6 +129,7 @@ public class MainViewModel : ViewModelBase
             {
                 _settings.ExecutablePath = value;
                 SaveSettings();
+                OnPropertyChanged(nameof(CurrentCpaVersionDisplay));
             }
         }
     }
@@ -171,6 +189,12 @@ public class MainViewModel : ViewModelBase
             : _settings.ManagementSecretKey;
 
     public bool HasManagementSecretKey => !string.IsNullOrWhiteSpace(_settings.ManagementSecretKey);
+
+    public string CurrentCpaVersionDisplay =>
+        FormatVersionForDisplay(ResolveCurrentCpaVersionForUpdateCheck());
+
+    public string LauncherCurrentVersionDisplay =>
+        FormatVersionForDisplay(GetLauncherVersion());
 
     // Settings Properties
     public bool MinimizeToTrayOnClose
@@ -273,7 +297,24 @@ public class MainViewModel : ViewModelBase
         set
         {
             if (SetProperty(ref _updateStatusText, value))
+            {
                 OnPropertyChanged(nameof(UpdateStatusVisibility));
+                OnPropertyChanged(nameof(UpdateCardText));
+                OnPropertyChanged(nameof(UpdateActionText));
+            }
+        }
+    }
+
+    public string LauncherUpdateStatusText
+    {
+        get => _launcherUpdateStatusText;
+        set
+        {
+            if (SetProperty(ref _launcherUpdateStatusText, value))
+            {
+                OnPropertyChanged(nameof(LauncherUpdateCardText));
+                OnPropertyChanged(nameof(LauncherUpdateActionText));
+            }
         }
     }
 
@@ -286,8 +327,66 @@ public class MainViewModel : ViewModelBase
     public bool IsUpdateInProgress
     {
         get => _isUpdateInProgress;
-        set => SetProperty(ref _isUpdateInProgress, value);
+        set
+        {
+            if (SetProperty(ref _isUpdateInProgress, value))
+            {
+                OnPropertyChanged(nameof(UpdateCardText));
+                OnPropertyChanged(nameof(UpdateActionText));
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
     }
+
+    public string UpdateCardText
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_updateStatusText))
+            {
+                return "暂无新版本";
+            }
+
+            return _updateStatusText
+                .Replace("：", " ", StringComparison.Ordinal)
+                .Replace(":", " ", StringComparison.Ordinal);
+        }
+    }
+
+    public string LauncherUpdateCardText
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_launcherUpdateStatusText))
+            {
+                return "未检查";
+            }
+
+            return _launcherUpdateStatusText
+                .Replace("：", " ", StringComparison.Ordinal)
+                .Replace(":", " ", StringComparison.Ordinal);
+        }
+    }
+
+    public string UpdateActionText
+    {
+        get
+        {
+            if (_isUpdateInProgress)
+            {
+                return "更新中";
+            }
+
+            return _updateStatusText.StartsWith("发现新版本", StringComparison.Ordinal)
+                ? "立即更新"
+                : "检查更新";
+        }
+    }
+
+    public string LauncherUpdateActionText =>
+        _launcherUpdateStatusText.StartsWith("发现新版本", StringComparison.Ordinal)
+            ? "查看发布"
+            : "检查启动器";
 
     public bool IsTokenDropOverlayVisible
     {
@@ -342,8 +441,12 @@ public class MainViewModel : ViewModelBase
     public ICommand StopCommand { get; }
     public ICommand RefreshCommand { get; }
     public ICommand OpenManagementCommand { get; }
+    public ICommand OpenRepositoryCommand { get; }
+    public ICommand OpenCpaRepositoryCommand { get; }
     public ICommand OpenLogsCommand { get; }
     public ICommand CheckForUpdateCommand { get; }
+    public ICommand CheckLauncherUpdateCommand { get; }
+    public ICommand CheckAllUpdatesCommand { get; }
     public ICommand BrowseExecutableCommand { get; }
     public ICommand BrowseConfigCommand { get; }
     public ICommand OpenExecutableDirCommand { get; }
@@ -368,8 +471,12 @@ public class MainViewModel : ViewModelBase
         StopCommand = new RelayCommand(StopServiceAsync, () => CanStop());
         RefreshCommand = new RelayCommand(RefreshAsync);
         OpenManagementCommand = new RelayCommand(OpenManagementPage, () => !string.IsNullOrEmpty(_managementUrl));
+        OpenRepositoryCommand = new RelayCommand(OpenRepositoryPage);
+        OpenCpaRepositoryCommand = new RelayCommand(OpenCpaRepositoryPage);
         OpenLogsCommand = new RelayCommand(OpenLogsDirectory, () => !string.IsNullOrEmpty(_logDirectory));
         CheckForUpdateCommand = new RelayCommand(CheckForUpdateAsync, () => !_isUpdateInProgress);
+        CheckLauncherUpdateCommand = new RelayCommand(CheckLauncherUpdateAsync, () => !_isUpdateInProgress);
+        CheckAllUpdatesCommand = new RelayCommand(CheckAllUpdatesAsync, () => !_isUpdateInProgress);
         BrowseExecutableCommand = new RelayCommand(BrowseExecutable);
         BrowseConfigCommand = new RelayCommand(BrowseConfig);
         OpenExecutableDirCommand = new RelayCommand(OpenExecutableDirectory, () => !string.IsNullOrEmpty(_executablePath));
@@ -490,6 +597,7 @@ public class MainViewModel : ViewModelBase
         ExecutablePath = result.ExePath;
         _settings.LastInstalledCpaVersion = info.TagName;
         SaveSettings();
+        OnPropertyChanged(nameof(CurrentCpaVersionDisplay));
 
         UpdateStatusText = $"CPA {info.TagName} 安装完成";
         AddDiagnosticLine($"[launcher] {result.Message}");
@@ -550,6 +658,7 @@ public class MainViewModel : ViewModelBase
 
         _checkForUpdatesOnStartup = _settings.CheckForUpdatesOnStartup;
         OnPropertyChanged(nameof(CheckForUpdatesOnStartup));
+        OnPropertyChanged(nameof(CurrentCpaVersionDisplay));
         NotifyManagementSecretKeyChanged();
     }
 
@@ -648,6 +757,8 @@ public class MainViewModel : ViewModelBase
             StatusDetail = GetUnconfiguredStatusDetail();
             StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(232, 236, 241));
             StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(32, 31, 30));
+            StatusGlyph = "\uE783";
+            FooterStatusText = "等待完成配置";
             return;
         }
 
@@ -660,6 +771,8 @@ public class MainViewModel : ViewModelBase
             StatusDetail = "CPA 已运行，当前由启动器托管。";
             StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(209, 241, 224));
             StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(15, 85, 43));
+            StatusGlyph = "\uE73E";
+            FooterStatusText = "服务运行正常";
         }
         else if (isManaged && !serviceReachable)
         {
@@ -668,6 +781,8 @@ public class MainViewModel : ViewModelBase
             StatusDetail = "CPA 进程已启动，正在等待服务就绪...";
             StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(255, 242, 204));
             StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(120, 79, 0));
+            StatusGlyph = "\uE895";
+            FooterStatusText = "服务正在启动";
         }
         else if (!isManaged && serviceReachable)
         {
@@ -676,6 +791,8 @@ public class MainViewModel : ViewModelBase
             StatusDetail = "CPA 正在运行，但不由启动器托管（可能由其他方式启动）。";
             StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(222, 236, 255));
             StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(0, 74, 173));
+            StatusGlyph = "\uE8A7";
+            FooterStatusText = "检测到外部 CPA 实例";
         }
         else
         {
@@ -684,6 +801,8 @@ public class MainViewModel : ViewModelBase
             StatusDetail = "CPA 当前未运行。";
             StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(238, 238, 238));
             StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(66, 66, 66));
+            StatusGlyph = "\uE71A";
+            FooterStatusText = "服务已停止";
         }
     }
 
@@ -710,6 +829,8 @@ public class MainViewModel : ViewModelBase
             StatusDetail = result.Message;
             StatusBackgroundBrush = new SolidColorBrush(Color.FromRgb(255, 226, 226));
             StatusForegroundBrush = new SolidColorBrush(Color.FromRgb(163, 0, 0));
+            StatusGlyph = "\uE783";
+            FooterStatusText = "启动失败";
             MessageBox.Show(result.Message, "启动失败", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
@@ -762,6 +883,28 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    private void OpenRepositoryPage()
+    {
+        OpenUrl($"https://github.com/{LauncherGitHubRepo}", "仓库");
+    }
+
+    private void OpenCpaRepositoryPage()
+    {
+        OpenUrl($"https://github.com/{_settings.CpaGitHubRepo}", "CPA 源项目");
+    }
+
+    private void OpenUrl(string url, string title)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"无法打开{title}：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private void OpenLogsDirectory()
     {
         if (string.IsNullOrEmpty(_logDirectory)) return;
@@ -776,6 +919,64 @@ public class MainViewModel : ViewModelBase
     }
 
     // --- Update logic ---
+
+    private async Task CheckAllUpdatesAsync()
+    {
+        await CheckLauncherUpdateAsync();
+        await CheckForUpdateAsync();
+    }
+
+    private async Task CheckLauncherUpdateAsync()
+    {
+        LauncherUpdateStatusText = "正在检查...";
+        AddDiagnosticLine("[launcher] 正在检查 CPALauncher 更新...");
+
+        var currentVersion = GetLauncherVersion();
+        var updateCheck = await _updateService.CheckForUpdateAsync(
+            LauncherGitHubRepo,
+            currentVersion,
+            requireWindowsAsset: false,
+            productName: "CPALauncher");
+
+        if (updateCheck.Status == CpaUpdateCheckStatus.UpToDate)
+        {
+            LauncherUpdateStatusText = $"已是最新版本：{updateCheck.LatestTagName}";
+            AddDiagnosticLine($"[launcher] CPALauncher 已是最新版本：{updateCheck.LatestTagName}。");
+            MessageBox.Show(
+                $"CPALauncher 已是最新版本：{updateCheck.LatestTagName}。",
+                "检查启动器更新",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        if (updateCheck.Status == CpaUpdateCheckStatus.CheckFailed || updateCheck.UpdateInfo is null)
+        {
+            LauncherUpdateStatusText = "检查失败";
+            AddDiagnosticLine($"[launcher] {updateCheck.FailureReason ?? "检查 CPALauncher 更新失败。"}");
+            MessageBox.Show(
+                updateCheck.FailureReason ?? "检查 CPALauncher 更新失败。",
+                "检查启动器更新失败",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        var info = updateCheck.UpdateInfo;
+        LauncherUpdateStatusText = $"发现新版本：{info.TagName}";
+        AddDiagnosticLine($"[launcher] 发现 CPALauncher 新版本：{info.TagName}");
+
+        var answer = MessageBox.Show(
+            $"发现 CPALauncher 新版本 {info.TagName}。\n\n当前启动器暂不支持热更新自身，是否打开发布页？",
+            "CPALauncher 更新可用",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (answer == MessageBoxResult.Yes && !string.IsNullOrWhiteSpace(info.ReleaseUrl))
+        {
+            OpenUrl(info.ReleaseUrl, "发布页");
+        }
+    }
 
     private async Task CheckForUpdateSilentAsync()
     {
@@ -919,6 +1120,7 @@ public class MainViewModel : ViewModelBase
         {
             _settings.LastInstalledCpaVersion = info.TagName;
             SaveSettings();
+            OnPropertyChanged(nameof(CurrentCpaVersionDisplay));
             UpdateStatusText = $"已更新到 {info.TagName}";
             AddDiagnosticLine($"[launcher] {result.Message}");
 
@@ -1001,6 +1203,17 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    private static string? GetLauncherVersion()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var informationalVersion = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+
+        return NormalizeVersionString(informationalVersion)
+            ?? NormalizeVersionString(assembly.GetName().Version?.ToString());
+    }
+
     private static string? NormalizeVersionString(string? rawVersion)
     {
         if (string.IsNullOrWhiteSpace(rawVersion))
@@ -1016,6 +1229,16 @@ public class MainViewModel : ViewModelBase
 
         var simplified = trimmed.Split(['+', '-', ' '], 2, StringSplitOptions.RemoveEmptyEntries)[0];
         return Version.TryParse(simplified.TrimStart('v'), out _) ? simplified : null;
+    }
+
+    private static string FormatVersionForDisplay(string? version)
+    {
+        if (string.IsNullOrWhiteSpace(version))
+        {
+            return "未知";
+        }
+
+        return version.StartsWith('v') ? version : $"v{version}";
     }
 
     // --- File browsing ---
@@ -1396,6 +1619,41 @@ public class MainViewModel : ViewModelBase
             {
                 await _processManager.StopAsync();
             }
+        }
+
+        _refreshTimer.Stop();
+        _processManager.Dispose();
+
+        if (Application.Current.MainWindow is Views.MainWindow mainWindow)
+        {
+            mainWindow.MarkExiting();
+        }
+
+        Application.Current.Shutdown();
+    }
+
+    public async Task ExitFromMainWindowCloseAsync()
+    {
+        var hasManagedProcess = _processManager.IsManagedProcessRunning;
+        var message = hasManagedProcess
+            ? "关闭启动器将停止当前托管的 CPA 进程并退出。\n\n是否继续？"
+            : "关闭主窗口将退出 CPALauncher。\n\n是否继续？";
+
+        var result = MessageBox.Show(new MessageBoxInfo
+        {
+            Message = message,
+            Caption = "退出启动器",
+            Button = MessageBoxButton.YesNo,
+            IconBrushKey = ResourceToken.AccentBrush,
+            IconKey = ResourceToken.AskGeometry,
+        });
+
+        if (result != MessageBoxResult.Yes)
+            return;
+
+        if (hasManagedProcess)
+        {
+            await _processManager.StopAsync();
         }
 
         _refreshTimer.Stop();

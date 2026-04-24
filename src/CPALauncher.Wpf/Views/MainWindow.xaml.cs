@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using CPALauncher.ViewModels;
@@ -14,6 +15,7 @@ public partial class MainWindow
 {
     private TaskbarIcon? _trayIcon;
     private bool _isExiting;
+    private bool _isExitPromptOpen;
     private DispatcherTimer? _dragLeaveClearTimer;
 
     public MainWindow()
@@ -41,11 +43,103 @@ public partial class MainWindow
     {
         SetupTrayIcon();
         SetupAutoScroll();
+        SetupLocalThemeSync();
 
         if (WindowState == WindowState.Minimized)
         {
             Hide();
         }
+    }
+
+    private void SetupLocalThemeSync()
+    {
+        if (DataContext is not MainViewModel vm)
+            return;
+
+        ApplyLocalChromeTheme(vm.IsDarkMode);
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MainViewModel.IsDarkMode))
+            {
+                ApplyLocalChromeTheme(vm.IsDarkMode);
+            }
+        };
+    }
+
+    private void ApplyLocalChromeTheme(bool isDark)
+    {
+        SetSolidResource("InkBrush", isDark ? "#EAF1F8" : "#142233");
+        SetSolidResource("MutedBrush", isDark ? "#B3C0CF" : "#536376");
+        SetSolidResource("SoftMutedBrush", isDark ? "#8FA0B3" : "#708092");
+        SetSolidResource("LineBrush", isDark ? "#304155" : "#D9E2EC");
+        SetSolidResource("CardBrush", isDark ? "#182638" : "#EEF4FA");
+        SetSolidResource("CardStrongBrush", isDark ? "#1D2D42" : "#F6FAFE");
+        SetSolidResource("PanelBrush", isDark ? "#142131" : "#EAF1F8");
+
+        Resources["WindowBackgroundBrush"] = CreateBackgroundBrush(isDark);
+    }
+
+    private void SetSolidResource(string key, string color)
+    {
+        Resources[key] = new SolidColorBrush(ParseColor(color));
+    }
+
+    private static LinearGradientBrush CreateBackgroundBrush(bool isDark)
+    {
+        var colors = isDark
+            ? new[] { "#101B29", "#152336", "#0F1926" }
+            : new[] { "#F7FAFD", "#E8F0F8", "#F4F8FC" };
+
+        return new LinearGradientBrush
+        {
+            StartPoint = new System.Windows.Point(0, 0),
+            EndPoint = new System.Windows.Point(1, 1),
+            GradientStops =
+            [
+                new GradientStop(ParseColor(colors[0]), 0),
+                new GradientStop(ParseColor(colors[1]), 0.62),
+                new GradientStop(ParseColor(colors[2]), 1),
+            ],
+        };
+    }
+
+    private static System.Windows.Media.Color ParseColor(string color)
+        => (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(color);
+
+    private void OnTitleBarMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount == 2)
+        {
+            ToggleMaximizeRestore();
+            return;
+        }
+
+        if (e.ButtonState == MouseButtonState.Pressed)
+        {
+            DragMove();
+        }
+    }
+
+    private void OnMinimizeClick(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
+
+    private void OnMaximizeRestoreClick(object sender, RoutedEventArgs e)
+    {
+        ToggleMaximizeRestore();
+    }
+
+    private void OnCloseClick(object sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+
+    private void ToggleMaximizeRestore()
+    {
+        WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
     }
 
     private void SetupAutoScroll()
@@ -66,7 +160,8 @@ public partial class MainWindow
                 var isAtBottom = scrollViewer.VerticalOffset >= scrollViewer.ScrollableHeight - 20;
                 if (isAtBottom)
                 {
-                    DiagnosticListBox.ScrollIntoView(DiagnosticListBox.Items[^1]);
+                    scrollViewer.ScrollToBottom();
+                    scrollViewer.ScrollToHorizontalOffset(0);
                 }
             }
             else
@@ -224,12 +319,38 @@ public partial class MainWindow
         }
     }
 
-    protected override void OnClosing(CancelEventArgs e)
+    protected override async void OnClosing(CancelEventArgs e)
     {
+        if (_isExiting)
+        {
+            _trayIcon?.Dispose();
+            base.OnClosing(e);
+            return;
+        }
+
         if (!_isExiting && DataContext is MainViewModel vm && vm.MinimizeToTrayOnClose)
         {
             e.Cancel = true;
             Hide();
+            return;
+        }
+
+        if (DataContext is MainViewModel closeVm)
+        {
+            e.Cancel = true;
+            if (_isExitPromptOpen)
+                return;
+
+            _isExitPromptOpen = true;
+            try
+            {
+                await closeVm.ExitFromMainWindowCloseAsync();
+            }
+            finally
+            {
+                _isExitPromptOpen = false;
+            }
+
             return;
         }
 

@@ -15,7 +15,12 @@ public sealed class CpaUpdateService
         _httpClient = httpClient;
     }
 
-    public async Task<CpaUpdateCheckResult> CheckForUpdateAsync(string repo, string? currentVersion, CancellationToken ct = default)
+    public async Task<CpaUpdateCheckResult> CheckForUpdateAsync(
+        string repo,
+        string? currentVersion,
+        CancellationToken ct = default,
+        bool requireWindowsAsset = true,
+        string productName = "CPA")
     {
         try
         {
@@ -49,7 +54,7 @@ public sealed class CpaUpdateService
             {
                 var curVersionStr = currentVersion.TrimStart('v');
                 if (!Version.TryParse(curVersionStr, out var curVersion))
-                    return CpaUpdateCheckResult.CheckFailed($"当前 CPA 版本号格式无效：{currentVersion}。");
+                    return CpaUpdateCheckResult.CheckFailed($"当前 {productName} 版本号格式无效：{currentVersion}。");
 
                 if (newVersion <= curVersion)
                     return CpaUpdateCheckResult.UpToDate(tagName, newVersion);
@@ -59,32 +64,37 @@ public sealed class CpaUpdateService
                 ? releaseUrlElement.GetString() ?? string.Empty
                 : string.Empty;
 
-            string? assetUrl = null;
+            var assetUrl = releaseUrl;
             long assetSize = 0;
 
-            if (!root.TryGetProperty("assets", out var assetsElement) || assetsElement.ValueKind != JsonValueKind.Array)
-                return CpaUpdateCheckResult.CheckFailed("最新发布信息缺少 assets 列表，无法定位 Windows 安装包。");
-
-            foreach (var asset in assetsElement.EnumerateArray())
+            if (requireWindowsAsset)
             {
-                if (!asset.TryGetProperty("name", out var nameElement))
-                    continue;
+                assetUrl = null;
 
-                var name = nameElement.GetString();
-                if (name is not null && name.Contains("windows") && name.Contains("amd64") && name.EndsWith(".zip"))
+                if (!root.TryGetProperty("assets", out var assetsElement) || assetsElement.ValueKind != JsonValueKind.Array)
+                    return CpaUpdateCheckResult.CheckFailed("最新发布信息缺少 assets 列表，无法定位 Windows 安装包。");
+
+                foreach (var asset in assetsElement.EnumerateArray())
                 {
-                    assetUrl = asset.TryGetProperty("browser_download_url", out var assetUrlElement)
-                        ? assetUrlElement.GetString()
-                        : null;
-                    assetSize = asset.TryGetProperty("size", out var sizeElement) && sizeElement.TryGetInt64(out var size)
-                        ? size
-                        : 0;
-                    break;
-                }
-            }
+                    if (!asset.TryGetProperty("name", out var nameElement))
+                        continue;
 
-            if (string.IsNullOrEmpty(assetUrl))
-                return CpaUpdateCheckResult.CheckFailed("最新发布中未找到可用的 Windows amd64 安装包。");
+                    var name = nameElement.GetString();
+                    if (name is not null && name.Contains("windows") && name.Contains("amd64") && name.EndsWith(".zip"))
+                    {
+                        assetUrl = asset.TryGetProperty("browser_download_url", out var assetUrlElement)
+                            ? assetUrlElement.GetString()
+                            : null;
+                        assetSize = asset.TryGetProperty("size", out var sizeElement) && sizeElement.TryGetInt64(out var size)
+                            ? size
+                            : 0;
+                        break;
+                    }
+                }
+
+                if (string.IsNullOrEmpty(assetUrl))
+                    return CpaUpdateCheckResult.CheckFailed("最新发布中未找到可用的 Windows amd64 安装包。");
+            }
 
             return CpaUpdateCheckResult.UpdateAvailable(new CpaUpdateInfo
             {

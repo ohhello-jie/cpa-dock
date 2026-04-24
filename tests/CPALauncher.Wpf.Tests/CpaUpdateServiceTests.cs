@@ -64,6 +64,31 @@ public sealed class CpaUpdateServiceTests
     }
 
     [Fact]
+    public async Task CheckForUpdateAsync_WhenAssetIsNotRequired_ReturnsReleaseUrl()
+    {
+        using var httpClient = CreateHttpClient(HttpStatusCode.OK, """
+            {
+              "tag_name": "v0.3.0",
+              "html_url": "https://example.com/releases/v0.3.0",
+              "assets": []
+            }
+            """);
+        var service = new CpaUpdateService(httpClient);
+
+        var result = await service.CheckForUpdateAsync(
+            "ohhellojie/cpa-dock",
+            "v0.2.5",
+            requireWindowsAsset: false,
+            productName: "CPALauncher");
+
+        Assert.Equal(CpaUpdateCheckStatus.UpdateAvailable, result.Status);
+        Assert.NotNull(result.UpdateInfo);
+        Assert.Equal("https://example.com/releases/v0.3.0", result.UpdateInfo.ReleaseUrl);
+        Assert.Equal("https://example.com/releases/v0.3.0", result.UpdateInfo.AssetDownloadUrl);
+        Assert.Equal(0, result.UpdateInfo.AssetSize);
+    }
+
+    [Fact]
     public async Task CheckForUpdateAsync_WhenReleaseRequestFails_ReturnsCheckFailed()
     {
         using var httpClient = CreateHttpClient(HttpStatusCode.Forbidden, """
