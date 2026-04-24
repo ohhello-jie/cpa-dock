@@ -89,6 +89,46 @@ public sealed class CpaUpdateServiceTests
     }
 
     [Fact]
+    public async Task CheckForUpdateAsync_WithCustomAssetMatcher_ReturnsMatchingAsset()
+    {
+        using var httpClient = CreateHttpClient(HttpStatusCode.OK, """
+            {
+              "tag_name": "v0.3.0",
+              "html_url": "https://example.com/releases/v0.3.0",
+              "assets": [
+                {
+                  "name": "CPALauncher-win-x64-framework-dependent.zip",
+                  "browser_download_url": "https://example.com/downloads/framework.zip",
+                  "size": 1024
+                },
+                {
+                  "name": "CPALauncher-win-x64-self-contained.zip",
+                  "browser_download_url": "https://example.com/downloads/self-contained.zip",
+                  "size": 4096
+                }
+              ]
+            }
+            """);
+        var service = new CpaUpdateService(httpClient);
+
+        var result = await service.CheckForUpdateAsync(
+            "ohhellojie/cpa-dock",
+            "v0.2.6",
+            requireWindowsAsset: true,
+            productName: "CPALauncher",
+            assetNamePredicate: name =>
+                name.Contains("win-x64", StringComparison.OrdinalIgnoreCase)
+                && name.Contains("self-contained", StringComparison.OrdinalIgnoreCase)
+                && name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase),
+            assetDescription: "CPALauncher win-x64 self-contained 更新包");
+
+        Assert.Equal(CpaUpdateCheckStatus.UpdateAvailable, result.Status);
+        Assert.NotNull(result.UpdateInfo);
+        Assert.Equal("https://example.com/downloads/self-contained.zip", result.UpdateInfo.AssetDownloadUrl);
+        Assert.Equal(4096, result.UpdateInfo.AssetSize);
+    }
+
+    [Fact]
     public async Task CheckForUpdateAsync_WhenReleaseRequestFails_ReturnsCheckFailed()
     {
         using var httpClient = CreateHttpClient(HttpStatusCode.Forbidden, """

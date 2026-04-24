@@ -31,6 +31,7 @@ public class MainViewModel : ViewModelBase
     private readonly TokenImportService _tokenImportService = new();
     private readonly TokenDropEvaluator _tokenDropEvaluator = new();
     private readonly CpaUpdateService _updateService;
+    private readonly LauncherHotUpdateService _launcherHotUpdateService;
     private readonly DispatcherTimer _refreshTimer;
     private readonly DispatcherTimer _importNoticeTimer;
 
@@ -66,7 +67,10 @@ public class MainViewModel : ViewModelBase
     private string _updateStatusText = "";
     private string _launcherUpdateStatusText = "";
     private int _updateProgress;
+    private int _launcherUpdateProgress;
     private bool _isUpdateInProgress;
+    private bool _isLauncherUpdateInProgress;
+    private CpaUpdateInfo? _pendingLauncherUpdateInfo;
     private bool _isTokenDropOverlayVisible;
     private bool _isTokenDropValid;
     private string _tokenDropTitle = "";
@@ -303,6 +307,7 @@ public class MainViewModel : ViewModelBase
                 OnPropertyChanged(nameof(UpdateStatusVisibility));
                 OnPropertyChanged(nameof(UpdateCardText));
                 OnPropertyChanged(nameof(UpdateActionText));
+                OnPropertyChanged(nameof(UpdateStateBrush));
             }
         }
     }
@@ -316,6 +321,7 @@ public class MainViewModel : ViewModelBase
             {
                 OnPropertyChanged(nameof(LauncherUpdateCardText));
                 OnPropertyChanged(nameof(LauncherUpdateActionText));
+                OnPropertyChanged(nameof(LauncherUpdateStateBrush));
             }
         }
     }
@@ -324,6 +330,12 @@ public class MainViewModel : ViewModelBase
     {
         get => _updateProgress;
         set => SetProperty(ref _updateProgress, value);
+    }
+
+    public int LauncherUpdateProgress
+    {
+        get => _launcherUpdateProgress;
+        set => SetProperty(ref _launcherUpdateProgress, value);
     }
 
     public bool IsUpdateInProgress
@@ -335,6 +347,21 @@ public class MainViewModel : ViewModelBase
             {
                 OnPropertyChanged(nameof(UpdateCardText));
                 OnPropertyChanged(nameof(UpdateActionText));
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
+    }
+
+    public bool IsLauncherUpdateInProgress
+    {
+        get => _isLauncherUpdateInProgress;
+        set
+        {
+            if (SetProperty(ref _isLauncherUpdateInProgress, value))
+            {
+                OnPropertyChanged(nameof(LauncherUpdateCardText));
+                OnPropertyChanged(nameof(LauncherUpdateActionText));
+                OnPropertyChanged(nameof(LauncherUpdateProgressVisibility));
                 CommandManager.InvalidateRequerySuggested();
             }
         }
@@ -385,10 +412,25 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    public string LauncherUpdateActionText =>
-        _launcherUpdateStatusText.StartsWith("发现新版本", StringComparison.Ordinal)
-            ? "查看发布"
-            : "检查启动器";
+    public Brush UpdateStateBrush => ResolveUpdateStateBrush(_updateStatusText);
+
+    public string LauncherUpdateActionText
+    {
+        get
+        {
+            if (_isLauncherUpdateInProgress)
+            {
+                return "更新中";
+            }
+
+            return _pendingLauncherUpdateInfo is not null
+                   && _launcherUpdateStatusText.StartsWith("发现新版本", StringComparison.Ordinal)
+                ? "立即热更新"
+                : "检查启动器";
+        }
+    }
+
+    public Brush LauncherUpdateStateBrush => ResolveUpdateStateBrush(_launcherUpdateStatusText);
 
     public bool IsTokenDropOverlayVisible
     {
@@ -435,6 +477,9 @@ public class MainViewModel : ViewModelBase
     public Visibility UpdateProgressVisibility =>
         _isUpdateInProgress ? Visibility.Visible : Visibility.Collapsed;
 
+    public Visibility LauncherUpdateProgressVisibility =>
+        _isLauncherUpdateInProgress ? Visibility.Visible : Visibility.Collapsed;
+
     public Visibility UpdateStatusVisibility =>
         string.IsNullOrEmpty(_updateStatusText) ? Visibility.Collapsed : Visibility.Visible;
 
@@ -467,6 +512,7 @@ public class MainViewModel : ViewModelBase
     protected MainViewModel(bool skipInitialization)
     {
         _updateService = new CpaUpdateService(_downloadHttpClient);
+        _launcherHotUpdateService = new LauncherHotUpdateService(_downloadHttpClient);
 
         // Initialize commands
         StartCommand = new RelayCommand(StartServiceAsync, () => CanStart());
@@ -476,9 +522,9 @@ public class MainViewModel : ViewModelBase
         OpenRepositoryCommand = new RelayCommand(OpenRepositoryPage);
         OpenCpaRepositoryCommand = new RelayCommand(OpenCpaRepositoryPage);
         OpenLogsCommand = new RelayCommand(OpenLogsDirectory, () => !string.IsNullOrEmpty(_logDirectory));
-        CheckForUpdateCommand = new RelayCommand(CheckForUpdateAsync, () => !_isUpdateInProgress);
-        CheckLauncherUpdateCommand = new RelayCommand(CheckLauncherUpdateAsync, () => !_isUpdateInProgress);
-        CheckAllUpdatesCommand = new RelayCommand(CheckAllUpdatesAsync, () => !_isUpdateInProgress);
+        CheckForUpdateCommand = new RelayCommand(CheckForUpdateAsync, CanRunUpdateCommand);
+        CheckLauncherUpdateCommand = new RelayCommand(CheckLauncherUpdateAsync, CanRunUpdateCommand);
+        CheckAllUpdatesCommand = new RelayCommand(CheckAllUpdatesAsync, CanRunUpdateCommand);
         BrowseExecutableCommand = new RelayCommand(BrowseExecutable);
         BrowseConfigCommand = new RelayCommand(BrowseConfig);
         OpenExecutableDirCommand = new RelayCommand(OpenExecutableDirectory, () => !string.IsNullOrEmpty(_executablePath));
@@ -949,26 +995,44 @@ public class MainViewModel : ViewModelBase
 
     // --- Update logic ---
 
+    private bool CanRunUpdateCommand()
+    {
+        return !_isUpdateInProgress && !_isLauncherUpdateInProgress;
+    }
+
     private async Task CheckAllUpdatesAsync()
     {
-        await CheckLauncherUpdateAsync();
         await CheckForUpdateAsync();
+        await CheckLauncherUpdateAsync();
     }
 
     private async Task CheckLauncherUpdateAsync()
     {
-        LauncherUpdateStatusText = "正在检查...";
+        if (_pendingLauncherUpdateInfo is not null
+            && _launcherUpdateStatusText.StartsWith("发现新版本", StringComparison.Ordinal))
+        {
+            await PromptAndPerformLauncherHotUpdateAsync(_pendingLauncherUpdateInfo);
+            return;
+        }
+
+        _pendingLauncherUpdateInfo = null;
+        OnPropertyChanged(nameof(LauncherUpdateActionText));
+        LauncherUpdateStatusText = "正在检查启动器更新...";
         AddDiagnosticLine("[launcher] 正在检查 CPALauncher 更新...");
 
         var currentVersion = GetLauncherVersion();
         var updateCheck = await _updateService.CheckForUpdateAsync(
             LauncherGitHubRepo,
             currentVersion,
-            requireWindowsAsset: false,
-            productName: "CPALauncher");
+            requireWindowsAsset: true,
+            productName: "CPALauncher",
+            assetNamePredicate: IsLauncherWindowsPackageAsset,
+            assetDescription: "CPALauncher win-x64 self-contained 更新包");
 
         if (updateCheck.Status == CpaUpdateCheckStatus.UpToDate)
         {
+            _pendingLauncherUpdateInfo = null;
+            OnPropertyChanged(nameof(LauncherUpdateActionText));
             LauncherUpdateStatusText = $"已是最新版本：{updateCheck.LatestTagName}";
             AddDiagnosticLine($"[launcher] CPALauncher 已是最新版本：{updateCheck.LatestTagName}。");
             MessageBox.Show(
@@ -981,6 +1045,8 @@ public class MainViewModel : ViewModelBase
 
         if (updateCheck.Status == CpaUpdateCheckStatus.CheckFailed || updateCheck.UpdateInfo is null)
         {
+            _pendingLauncherUpdateInfo = null;
+            OnPropertyChanged(nameof(LauncherUpdateActionText));
             LauncherUpdateStatusText = "检查失败";
             AddDiagnosticLine($"[launcher] {updateCheck.FailureReason ?? "检查 CPALauncher 更新失败。"}");
             MessageBox.Show(
@@ -992,19 +1058,96 @@ public class MainViewModel : ViewModelBase
         }
 
         var info = updateCheck.UpdateInfo;
+        _pendingLauncherUpdateInfo = info;
         LauncherUpdateStatusText = $"发现新版本：{info.TagName}";
+        OnPropertyChanged(nameof(LauncherUpdateActionText));
         AddDiagnosticLine($"[launcher] 发现 CPALauncher 新版本：{info.TagName}");
 
+        await PromptAndPerformLauncherHotUpdateAsync(info);
+    }
+
+    private async Task PromptAndPerformLauncherHotUpdateAsync(CpaUpdateInfo info)
+    {
         var answer = MessageBox.Show(
-            $"发现 CPALauncher 新版本 {info.TagName}。\n\n当前启动器暂不支持热更新自身，是否打开发布页？",
+            $"发现 CPALauncher 新版本 {info.TagName}。\n\n将下载更新包，随后自动重启启动器并完成替换。当前 CPA 进程不会被主动停止。\n\n是否现在热更新？",
             "CPALauncher 更新可用",
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 
-        if (answer == MessageBoxResult.Yes && !string.IsNullOrWhiteSpace(info.ReleaseUrl))
+        if (answer == MessageBoxResult.Yes)
         {
-            OpenUrl(info.ReleaseUrl, "发布页");
+            await PerformLauncherHotUpdateAsync(info);
         }
+    }
+
+    private async Task PerformLauncherHotUpdateAsync(CpaUpdateInfo info)
+    {
+        IsLauncherUpdateInProgress = true;
+        LauncherUpdateProgress = 0;
+        LauncherUpdateStatusText = "正在下载启动器更新...";
+        AddDiagnosticLine($"[launcher] 正在下载 CPALauncher {info.TagName} 更新包...");
+
+        var progress = new Progress<(long downloaded, long total)>(p =>
+        {
+            if (p.total > 0)
+            {
+                LauncherUpdateProgress = (int)(p.downloaded * 100 / p.total);
+                LauncherUpdateStatusText =
+                    $"正在下载启动器更新... {p.downloaded / 1024.0 / 1024.0:F1} / {p.total / 1024.0 / 1024.0:F1} MB";
+                return;
+            }
+
+            LauncherUpdateStatusText = $"正在下载启动器更新... {p.downloaded / 1024.0 / 1024.0:F1} MB";
+        });
+
+        var launcherExecutablePath = LauncherExecutablePathResolver.ResolveCurrentProcessPath();
+        var preparation = await _launcherHotUpdateService.PrepareHotUpdateAsync(info, launcherExecutablePath, progress);
+
+        if (!preparation.Success || preparation.Package is null)
+        {
+            IsLauncherUpdateInProgress = false;
+            LauncherUpdateStatusText = "更新失败";
+            AddDiagnosticLine($"[launcher] {preparation.Message}");
+            MessageBox.Show(preparation.Message, "启动器热更新失败", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        LauncherUpdateStatusText = "正在启动热更新...";
+        AddDiagnosticLine("[launcher] 更新包已准备完成，正在启动热更新辅助进程。");
+
+        var startResult = _launcherHotUpdateService.StartHotUpdate(preparation.Package);
+        if (!startResult.Success)
+        {
+            IsLauncherUpdateInProgress = false;
+            LauncherUpdateStatusText = "更新失败";
+            AddDiagnosticLine($"[launcher] {startResult.Message}");
+            MessageBox.Show(startResult.Message, "启动器热更新失败", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        _pendingLauncherUpdateInfo = null;
+        LauncherUpdateStatusText = "正在重启以完成热更新...";
+        AddDiagnosticLine($"[launcher] CPALauncher {info.TagName} 热更新已就绪，启动器即将重启。");
+        MessageBox.Show(
+            $"CPALauncher {info.TagName} 已下载完成，启动器将自动重启并完成更新。",
+            "启动器热更新",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+
+        ShutdownForLauncherHotUpdate();
+    }
+
+    private void ShutdownForLauncherHotUpdate()
+    {
+        _refreshTimer.Stop();
+        _processManager.Dispose();
+
+        if (Application.Current?.MainWindow is Views.MainWindow mainWindow)
+        {
+            mainWindow.MarkExiting();
+        }
+
+        Application.Current?.Shutdown();
     }
 
     private async Task CheckForUpdateSilentAsync()
@@ -1022,7 +1165,7 @@ public class MainViewModel : ViewModelBase
         var updateCheck = await _updateService.CheckForUpdateAsync(_settings.CpaGitHubRepo, currentVersion);
         if (updateCheck.Status == CpaUpdateCheckStatus.UpToDate)
         {
-            UpdateStatusText = "";
+            UpdateStatusText = $"已是最新版本：{updateCheck.LatestTagName}";
             AddDiagnosticLine($"[launcher] CPA 已是最新版本：{updateCheck.LatestTagName}。");
             return;
         }
@@ -1076,7 +1219,7 @@ public class MainViewModel : ViewModelBase
         var updateCheck = await _updateService.CheckForUpdateAsync(_settings.CpaGitHubRepo, currentVersion);
         if (updateCheck.Status == CpaUpdateCheckStatus.UpToDate)
         {
-            UpdateStatusText = "";
+            UpdateStatusText = $"已是最新版本：{updateCheck.LatestTagName}";
             AddDiagnosticLine($"[launcher] CPA 已是最新版本：{updateCheck.LatestTagName}。");
             MessageBox.Show(
                 $"CPA 已是最新版本：{updateCheck.LatestTagName}。",
@@ -1258,6 +1401,40 @@ public class MainViewModel : ViewModelBase
 
         var simplified = trimmed.Split(['+', '-', ' '], 2, StringSplitOptions.RemoveEmptyEntries)[0];
         return Version.TryParse(simplified.TrimStart('v'), out _) ? simplified : null;
+    }
+
+    private static bool IsLauncherWindowsPackageAsset(string name)
+    {
+        return name.StartsWith("CPALauncher-", StringComparison.OrdinalIgnoreCase)
+               && name.Contains("win-x64", StringComparison.OrdinalIgnoreCase)
+               && name.Contains("self-contained", StringComparison.OrdinalIgnoreCase)
+               && name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static Brush ResolveUpdateStateBrush(string statusText)
+    {
+        if (statusText.StartsWith("已是最新版本", StringComparison.Ordinal)
+            || statusText.StartsWith("已更新到", StringComparison.Ordinal))
+        {
+            return new SolidColorBrush(Color.FromRgb(68, 163, 110));
+        }
+
+        if (statusText.Contains("失败", StringComparison.Ordinal))
+        {
+            return new SolidColorBrush(Color.FromRgb(210, 75, 75));
+        }
+
+        if (statusText.StartsWith("发现新版本", StringComparison.Ordinal))
+        {
+            return new SolidColorBrush(Color.FromRgb(221, 138, 31));
+        }
+
+        if (statusText.StartsWith("正在", StringComparison.Ordinal))
+        {
+            return new SolidColorBrush(Color.FromRgb(64, 132, 196));
+        }
+
+        return new SolidColorBrush(Color.FromRgb(112, 128, 146));
     }
 
     private static string FormatVersionForDisplay(string? version)

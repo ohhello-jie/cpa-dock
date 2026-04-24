@@ -20,7 +20,9 @@ public sealed class CpaUpdateService
         string? currentVersion,
         CancellationToken ct = default,
         bool requireWindowsAsset = true,
-        string productName = "CPA")
+        string productName = "CPA",
+        Func<string, bool>? assetNamePredicate = null,
+        string assetDescription = "Windows amd64 安装包")
     {
         try
         {
@@ -70,9 +72,10 @@ public sealed class CpaUpdateService
             if (requireWindowsAsset)
             {
                 assetUrl = null;
+                assetNamePredicate ??= IsDefaultWindowsAsset;
 
                 if (!root.TryGetProperty("assets", out var assetsElement) || assetsElement.ValueKind != JsonValueKind.Array)
-                    return CpaUpdateCheckResult.CheckFailed("最新发布信息缺少 assets 列表，无法定位 Windows 安装包。");
+                    return CpaUpdateCheckResult.CheckFailed($"最新发布信息缺少 assets 列表，无法定位 {assetDescription}。");
 
                 foreach (var asset in assetsElement.EnumerateArray())
                 {
@@ -80,7 +83,7 @@ public sealed class CpaUpdateService
                         continue;
 
                     var name = nameElement.GetString();
-                    if (name is not null && name.Contains("windows") && name.Contains("amd64") && name.EndsWith(".zip"))
+                    if (name is not null && assetNamePredicate(name))
                     {
                         assetUrl = asset.TryGetProperty("browser_download_url", out var assetUrlElement)
                             ? assetUrlElement.GetString()
@@ -93,7 +96,7 @@ public sealed class CpaUpdateService
                 }
 
                 if (string.IsNullOrEmpty(assetUrl))
-                    return CpaUpdateCheckResult.CheckFailed("最新发布中未找到可用的 Windows amd64 安装包。");
+                    return CpaUpdateCheckResult.CheckFailed($"最新发布中未找到可用的 {assetDescription}。");
             }
 
             return CpaUpdateCheckResult.UpdateAvailable(new CpaUpdateInfo
@@ -259,5 +262,12 @@ public sealed class CpaUpdateService
     {
         try { if (File.Exists(path)) File.Delete(path); }
         catch { /* best effort */ }
+    }
+
+    private static bool IsDefaultWindowsAsset(string name)
+    {
+        return name.Contains("windows", StringComparison.OrdinalIgnoreCase)
+               && name.Contains("amd64", StringComparison.OrdinalIgnoreCase)
+               && name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
     }
 }

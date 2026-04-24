@@ -609,6 +609,7 @@
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
@@ -626,14 +627,33 @@
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
-                                            <Ellipse Width="8" Height="8" Fill="#E99B25" VerticalAlignment="Center" Margin="0,0,9,0"/>
+                                            <Ellipse Width="8" Height="8" Fill="{Binding LauncherUpdateStateBrush}" VerticalAlignment="Center" Margin="0,0,9,0"/>
                                             <TextBlock Grid.Column="1"
                                                        Text="{Binding LauncherUpdateCardText}"
-                                                       Foreground="{DynamicResource WarningTextBrush}"
+                                                       Foreground="{Binding LauncherUpdateStateBrush}"
                                                        FontSize="12"
                                                        TextTrimming="CharacterEllipsis"/>
                                         </Grid>
+                                        <ProgressBar Value="{Binding LauncherUpdateProgress}"
+                                                     Maximum="100"
+                                                     Height="16"
+                                                     FontSize="10"
+                                                     Margin="0,8,0,0"
+                                                     Visibility="{Binding LauncherUpdateProgressVisibility}"/>
                                     </StackPanel>
+                                    <Button Grid.Column="1"
+                                            Command="{Binding CheckLauncherUpdateCommand}"
+                                            Style="{StaticResource FlatTextButtonStyle}"
+                                            BorderBrush="{DynamicResource LineBrush}"
+                                            BorderThickness="1"
+                                            Height="30"
+                                            Width="32"
+                                            MinWidth="32"
+                                            Margin="10,0,0,0"
+                                            VerticalAlignment="Center"
+                                            ToolTip="{Binding LauncherUpdateActionText}">
+                                        <TextBlock Text="&#xE895;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
+                                    </Button>
                                 </Grid>
                             </Border>
 
@@ -641,6 +661,7 @@
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
@@ -658,10 +679,10 @@
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
-                                            <Ellipse Width="8" Height="8" Fill="#E99B25" VerticalAlignment="Center" Margin="0,0,9,0"/>
+                                            <Ellipse Width="8" Height="8" Fill="{Binding UpdateStateBrush}" VerticalAlignment="Center" Margin="0,0,9,0"/>
                                             <TextBlock Grid.Column="1"
                                                        Text="{Binding UpdateCardText}"
-                                                       Foreground="{DynamicResource WarningStrongTextBrush}"
+                                                       Foreground="{Binding UpdateStateBrush}"
                                                        FontSize="12"
                                                        TextTrimming="CharacterEllipsis"/>
                                         </Grid>
@@ -672,6 +693,19 @@
                                                      Margin="0,8,0,0"
                                                      Visibility="{Binding UpdateProgressVisibility}"/>
                                     </StackPanel>
+                                    <Button Grid.Column="1"
+                                            Command="{Binding CheckForUpdateCommand}"
+                                            Style="{StaticResource FlatTextButtonStyle}"
+                                            BorderBrush="{DynamicResource LineBrush}"
+                                            BorderThickness="1"
+                                            Height="30"
+                                            Width="32"
+                                            MinWidth="32"
+                                            Margin="10,0,0,0"
+                                            VerticalAlignment="Center"
+                                            ToolTip="{Binding UpdateActionText}">
+                                        <TextBlock Text="&#xE895;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
+                                    </Button>
                                 </Grid>
                             </Border>
                         </StackPanel>
