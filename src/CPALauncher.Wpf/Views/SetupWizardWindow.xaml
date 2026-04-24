@@ -137,7 +137,8 @@
     <Border Background="{DynamicResource WizardBackgroundBrush}"
             BorderBrush="{DynamicResource WizardWindowEdgeBrush}"
             BorderThickness="1"
-            CornerRadius="12">
+            CornerRadius="12"
+            MouseLeftButtonDown="OnWindowMouseLeftButtonDown">
 
         <Grid Margin="28,24,28,22">
             <Grid.RowDefinitions>
@@ -149,8 +150,7 @@
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0"
-                  Background="Transparent"
-                  MouseLeftButtonDown="OnWindowMouseLeftButtonDown">
+                  Background="Transparent">
                 <StackPanel>
                     <TextBlock Text="配置 CPA"
                                FontSize="22"
@@ -162,15 +162,6 @@
                                TextWrapping="Wrap"
                                Foreground="{DynamicResource WizardMutedBrush}"/>
                 </StackPanel>
-                <Button Content="&#xE8BB;"
-                        FontFamily="Segoe MDL2 Assets"
-                        FontSize="13"
-                        Width="34"
-                        Height="34"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Top"
-                        Style="{StaticResource WizardButtonStyle}"
-                        Click="OnSkipClick"/>
             </Grid>
 
             <Border Grid.Row="2"

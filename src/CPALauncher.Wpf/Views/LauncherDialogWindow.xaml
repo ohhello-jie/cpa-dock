@@ -114,7 +114,8 @@
     <Border Background="{DynamicResource DialogBackgroundBrush}"
             BorderBrush="{DynamicResource DialogWindowEdgeBrush}"
             BorderThickness="1"
-            CornerRadius="12">
+            CornerRadius="12"
+            MouseLeftButtonDown="OnWindowMouseLeftButtonDown">
 
         <Grid Margin="26,24,26,22">
             <Grid.RowDefinitions>
@@ -126,8 +127,7 @@
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0"
-                  Background="Transparent"
-                  MouseLeftButtonDown="OnWindowMouseLeftButtonDown">
+                  Background="Transparent">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="14"/>

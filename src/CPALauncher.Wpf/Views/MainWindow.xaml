@@ -359,6 +359,83 @@
             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
         </Style>
 
+        <Style x:Key="CompactOutlineButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="MinWidth" Value="44"/>
+            <Setter Property="Padding" Value="9,0"/>
+            <Setter Property="Background" Value="{DynamicResource ActionBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ActionHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ActionPressedBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ConfigTileStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource ActionBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12,10"/>
+        </Style>
+
+        <Style x:Key="ConfigSummaryStyle" TargetType="Border" BasedOn="{StaticResource ConfigTileStyle}">
+            <Setter Property="Padding" Value="12,8"/>
+        </Style>
+
+        <Style x:Key="ConfigTileTitleStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+
+        <Style x:Key="ConfigTileValueStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+
+        <Style x:Key="ConfigBadgeStyle" TargetType="Border">
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="MinWidth" Value="48"/>
+            <Setter Property="Padding" Value="8,0"/>
+            <Setter Property="Background" Value="{DynamicResource StatusHaloBrush}"/>
+            <Setter Property="CornerRadius" Value="11"/>
+        </Style>
+
+        <Style x:Key="CompactOptionLabelStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+
     </hc:Window.Resources>
 
     <hc:Window.DataContext>
@@ -425,8 +502,8 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="188"/>
                     <RowDefinition Height="68"/>
-                    <RowDefinition Height="300"/>
-                    <RowDefinition Height="*" MinHeight="160"/>
+                    <RowDefinition Height="340"/>
+                    <RowDefinition Height="*" MinHeight="132"/>
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -764,204 +841,210 @@
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="32"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="配置"
                                            FontSize="17"
                                            FontWeight="SemiBold"
                                            Foreground="{DynamicResource InkBrush}"
                                            VerticalAlignment="Center"/>
-                                <Button Grid.Column="1"
-                                        Width="28"
-                                        Height="28"
-                                        MinWidth="28"
-                                        Padding="0"
-                                        Command="{Binding ToggleConfigurationInfoVisibilityCommand}"
-                                        Style="{StaticResource FlatTextButtonStyle}"
-                                        ToolTip="{Binding ConfigurationInfoVisibilityToolTip}">
-                                    <Grid Width="18" Height="18">
-                                        <Viewbox Width="18" Height="18">
-                                            <Viewbox.Style>
-                                                <Style TargetType="Viewbox">
-                                                    <Setter Property="Visibility" Value="Visible"/>
+                                <StackPanel Grid.Column="1"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <TextBlock FontSize="12"
+                                               Foreground="{DynamicResource MutedBrush}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="已显示配置信息"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsConfigurationInfoHidden}" Value="True">
+                                                        <Setter Property="Text" Value="已隐藏敏感信息"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <Button Command="{Binding ToggleConfigurationInfoVisibilityCommand}"
+                                            Style="{StaticResource CompactOutlineButtonStyle}"
+                                            ToolTip="{Binding ConfigurationInfoVisibilityToolTip}">
+                                        <TextBlock>
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="隐藏"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsConfigurationInfoHidden}" Value="True">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Setter Property="Text" Value="显示"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
-                                            </Viewbox.Style>
-                                            <Canvas Width="24" Height="24">
-                                                <Path Data="M2.5,12 C5.2,7.2 8.4,5 12,5 C15.6,5 18.8,7.2 21.5,12 C18.8,16.8 15.6,19 12,19 C8.4,19 5.2,16.8 2.5,12 Z"
-                                                      Fill="Transparent"
-                                                      Stroke="{DynamicResource InkBrush}"
-                                                      StrokeThickness="1.8"
-                                                      StrokeStartLineCap="Round"
-                                                      StrokeEndLineCap="Round"
-                                                      StrokeLineJoin="Round"/>
-                                                <Ellipse Canvas.Left="9"
-                                                         Canvas.Top="9"
-                                                         Width="6"
-                                                         Height="6"
-                                                         Fill="Transparent"
-                                                         Stroke="{DynamicResource InkBrush}"
-                                                         StrokeThickness="1.8"/>
-                                            </Canvas>
-                                        </Viewbox>
-                                        <Viewbox Width="18" Height="18">
-                                            <Viewbox.Style>
-                                                <Style TargetType="Viewbox">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsConfigurationInfoHidden}" Value="True">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Viewbox.Style>
-                                            <Canvas Width="24" Height="24">
-                                                <Path Data="M4,13 C6.5,16 9,17.5 12,17.5 C15,17.5 17.5,16 20,13"
-                                                      Fill="Transparent"
-                                                      Stroke="{DynamicResource InkBrush}"
-                                                      StrokeThickness="1.8"
-                                                      StrokeStartLineCap="Round"
-                                                      StrokeEndLineCap="Round"
-                                                      StrokeLineJoin="Round"/>
-                                                <Path Data="M7,10 L5.5,8.5 M12,9 L12,6.5 M17,10 L18.5,8.5"
-                                                      Fill="Transparent"
-                                                      Stroke="{DynamicResource InkBrush}"
-                                                      StrokeThickness="1.8"
-                                                      StrokeStartLineCap="Round"
-                                                      StrokeEndLineCap="Round"
-                                                      StrokeLineJoin="Round"/>
-                                            </Canvas>
-                                        </Viewbox>
-                                    </Grid>
-                                </Button>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Button>
+                                </StackPanel>
                             </Grid>
 
                             <Grid Grid.Row="1">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="28"/>
-                                    <RowDefinition Height="28"/>
-                                    <RowDefinition Height="28"/>
-                                    <RowDefinition Height="28"/>
-                                    <RowDefinition Height="28"/>
-                                    <RowDefinition Height="28"/>
-                                    <RowDefinition Height="28"/>
-                                    <RowDefinition Height="28"/>
+                                    <RowDefinition Height="132"/>
+                                    <RowDefinition Height="12"/>
+                                    <RowDefinition Height="96"/>
                                 </Grid.RowDefinitions>
 
-                                <Grid Grid.Row="0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="0"/>
-                                        <ColumnDefinition Width="125"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="28"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text="可执行文件" Style="{StaticResource RowLabelStyle}"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding ExecutablePathDisplay}" ToolTip="{Binding ExecutablePathToolTip}" Style="{StaticResource RowValueStyle}"/>
-                                    <Button Grid.Column="3" Content="浏览" Command="{Binding BrowseExecutableCommand}" Style="{StaticResource FlatTextButtonStyle}"/>
-                                    <Button Grid.Column="4" Content="&#xE76C;" Command="{Binding OpenExecutableDirCommand}" Style="{StaticResource FlatTextButtonStyle}" FontFamily="Segoe MDL2 Assets"/>
-                                </Grid>
-                                <Border Grid.Row="0" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                <Border Grid.Row="0" Style="{StaticResource ConfigTileStyle}" Padding="0">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="66"/>
+                                            <RowDefinition Height="66"/>
+                                        </Grid.RowDefinitions>
 
-                                <Grid Grid.Row="1">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="0"/>
-                                        <ColumnDefinition Width="125"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="28"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text="配置文件" Style="{StaticResource RowLabelStyle}"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding ConfigPathDisplay}" ToolTip="{Binding ConfigPathToolTip}" Style="{StaticResource RowValueStyle}"/>
-                                    <Button Grid.Column="3" Content="浏览" Command="{Binding BrowseConfigCommand}" Style="{StaticResource FlatTextButtonStyle}"/>
-                                    <Button Grid.Column="4" Content="&#xE76C;" Command="{Binding OpenConfigDirCommand}" Style="{StaticResource FlatTextButtonStyle}" FontFamily="Segoe MDL2 Assets"/>
-                                </Grid>
-                                <Border Grid.Row="1" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                        <Grid Margin="14,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="88"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="CPA 程序" Style="{StaticResource ConfigTileTitleStyle}"/>
+                                                <TextBlock FontSize="11" FontWeight="SemiBold" Margin="0,3,0,0">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="已选择"/>
+                                                            <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ExecutablePath}" Value="">
+                                                                    <Setter Property="Text" Value="未选择"/>
+                                                                    <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding ExecutablePathDisplay}"
+                                                       ToolTip="{Binding ExecutablePathToolTip}"
+                                                       Style="{StaticResource ConfigTileValueStyle}"
+                                                       FontSize="14"
+                                                       VerticalAlignment="Center"
+                                                       Margin="0,0,14,0"/>
+                                            <Button Grid.Column="2"
+                                                    Content="浏览"
+                                                    Command="{Binding BrowseExecutableCommand}"
+                                                    Style="{StaticResource CompactOutlineButtonStyle}"
+                                                    VerticalAlignment="Center"/>
+                                        </Grid>
 
-                                <Grid Grid.Row="2">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="0"/>
-                                        <ColumnDefinition Width="125"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text="管理页 URL" Style="{StaticResource RowLabelStyle}"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding ManagementUrlDisplay}" ToolTip="{Binding ManagementUrlToolTip}" Style="{StaticResource RowValueStyle}"/>
-                                </Grid>
-                                <Border Grid.Row="2" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                        <Border Grid.Row="0"
+                                                BorderBrush="{DynamicResource LineBrush}"
+                                                BorderThickness="0,0,0,1"
+                                                Margin="14,0"/>
 
-                                <Grid Grid.Row="3">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="0"/>
-                                        <ColumnDefinition Width="125"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE968;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text="探针 URL" Style="{StaticResource RowLabelStyle}"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding ProbeUrlDisplay}" ToolTip="{Binding ProbeUrlToolTip}" Style="{StaticResource RowValueStyle}"/>
-                                </Grid>
-                                <Border Grid.Row="3" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                        <Grid Grid.Row="1" Margin="14,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="88"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="config.yaml" Style="{StaticResource ConfigTileTitleStyle}"/>
+                                                <TextBlock FontSize="11" FontWeight="SemiBold" Margin="0,3,0,0">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="已选择"/>
+                                                            <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ConfigPath}" Value="">
+                                                                    <Setter Property="Text" Value="未选择"/>
+                                                                    <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding ConfigPathDisplay}"
+                                                       ToolTip="{Binding ConfigPathToolTip}"
+                                                       Style="{StaticResource ConfigTileValueStyle}"
+                                                       FontSize="14"
+                                                       VerticalAlignment="Center"
+                                                       Margin="0,0,14,0"/>
+                                            <Button Grid.Column="2"
+                                                    Content="浏览"
+                                                    Command="{Binding BrowseConfigCommand}"
+                                                    Style="{StaticResource CompactOutlineButtonStyle}"
+                                                    VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
 
-                                <Grid Grid.Row="4">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="0"/>
-                                        <ColumnDefinition Width="125"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="28"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text="配置目录" Style="{StaticResource RowLabelStyle}"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding ConfigDirectoryDisplay}" ToolTip="{Binding ConfigDirectoryToolTip}" Style="{StaticResource RowValueStyle}"/>
-                                    <Button Grid.Column="3" Content="&#xE76C;" Command="{Binding OpenConfigDirCommand}" Style="{StaticResource FlatTextButtonStyle}" FontFamily="Segoe MDL2 Assets"/>
-                                </Grid>
-                                <Border Grid.Row="4" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                <Border Grid.Row="2" Style="{StaticResource ConfigSummaryStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1.05*"/>
+                                            <ColumnDefinition Width="1.05*"/>
+                                            <ColumnDefinition Width="1.25*"/>
+                                        </Grid.ColumnDefinitions>
 
-                                <Grid Grid.Row="5">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="0"/>
-                                        <ColumnDefinition Width="125"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="28"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text="日志目录" Style="{StaticResource RowLabelStyle}"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding LogDirectoryDisplay}" ToolTip="{Binding LogDirectoryToolTip}" Style="{StaticResource RowValueStyle}"/>
-                                    <Button Grid.Column="3" Content="&#xE76C;" Command="{Binding OpenLogsCommand}" Style="{StaticResource FlatTextButtonStyle}" FontFamily="Segoe MDL2 Assets"/>
-                                </Grid>
-                                <Border Grid.Row="5" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="服务地址" Foreground="{DynamicResource MutedBrush}" FontSize="12" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding ProbeUrlDisplay}"
+                                                       ToolTip="{Binding ProbeUrlToolTip}"
+                                                       Style="{StaticResource ConfigTileTitleStyle}"
+                                                       Margin="0,4,10,0"/>
+                                            <TextBlock Text="{Binding ManagementUrlDisplay, StringFormat=管理页 {0}}"
+                                                       ToolTip="{Binding ManagementUrlToolTip}"
+                                                       Style="{StaticResource ConfigTileValueStyle}"
+                                                       FontSize="12"
+                                                       Margin="0,3,10,0"/>
+                                        </StackPanel>
 
-                                <Grid Grid.Row="6">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="0"/>
-                                        <ColumnDefinition Width="125"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text="认证目录" Style="{StaticResource RowLabelStyle}"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding AuthDirectoryDisplay}" ToolTip="{Binding AuthDirectoryToolTip}" Style="{StaticResource RowValueStyle}"/>
-                                </Grid>
-                                <Border Grid.Row="6" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                        <Border Grid.Column="0"
+                                                Width="1"
+                                                Background="{DynamicResource LineBrush}"
+                                                HorizontalAlignment="Right"
+                                                Margin="0,4,0,4"/>
 
-                                <Grid Grid.Row="7">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="0"/>
-                                        <ColumnDefinition Width="125"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="64"/>
-                                        <ColumnDefinition Width="28"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text="管理密钥" Style="{StaticResource RowLabelStyle}"/>
-                                    <TextBlock Grid.Column="2" Text="{Binding ManagementSecretKeyDisplay}" ToolTip="{Binding ManagementSecretKeyToolTip}" Style="{StaticResource RowValueStyle}"/>
-                                    <Button Grid.Column="3" Content="复制" Command="{Binding CopyManagementSecretKeyCommand}" Style="{StaticResource FlatTextButtonStyle}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"/>
-                                    <TextBlock Grid.Column="4" Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                </Grid>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0">
+                                            <TextBlock Text="管理密钥" Foreground="{DynamicResource MutedBrush}" FontSize="12" FontWeight="SemiBold"/>
+                                            <Grid Margin="0,4,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding ManagementSecretKeyDisplay}"
+                                                           ToolTip="{Binding ManagementSecretKeyToolTip}"
+                                                           Style="{StaticResource ConfigTileTitleStyle}"
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,8,0"/>
+                                                <Button Grid.Column="1"
+                                                        Content="复制"
+                                                        Command="{Binding CopyManagementSecretKeyCommand}"
+                                                        Style="{StaticResource CompactOutlineButtonStyle}"/>
+                                            </Grid>
+                                        </StackPanel>
+
+                                        <Border Grid.Column="1"
+                                                Width="1"
+                                                Background="{DynamicResource LineBrush}"
+                                                HorizontalAlignment="Right"
+                                                Margin="0,4,0,4"/>
+
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,0">
+                                            <TextBlock Text="运行目录" Foreground="{DynamicResource MutedBrush}" FontSize="12" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding LogDirectoryDisplay, StringFormat=日志 {0}}"
+                                                       ToolTip="{Binding LogDirectoryToolTip}"
+                                                       Style="{StaticResource ConfigTileValueStyle}"
+                                                       Margin="0,4,0,0"/>
+                                            <TextBlock Text="{Binding AuthDirectoryDisplay, StringFormat=认证 {0}}"
+                                                       ToolTip="{Binding AuthDirectoryToolTip}"
+                                                       Style="{StaticResource ConfigTileValueStyle}"
+                                                       Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
                             </Grid>
                         </Grid>
                     </Border>
@@ -983,113 +1066,110 @@
                             <Border Grid.Row="1"
                                     BorderBrush="{DynamicResource LineBrush}"
                                     BorderThickness="1"
-                                    CornerRadius="8">
+                                    CornerRadius="8"
+                                    ClipToBounds="True">
                                 <Grid>
                                     <Grid.RowDefinitions>
-                                        <RowDefinition Height="30"/>
-                                        <RowDefinition Height="30"/>
-                                        <RowDefinition Height="30"/>
-                                        <RowDefinition Height="30"/>
-                                        <RowDefinition Height="30"/>
-                                        <RowDefinition Height="30"/>
-                                        <RowDefinition Height="30"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="*"/>
                                     </Grid.RowDefinitions>
 
-                                    <Grid Grid.Row="0" Margin="14,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="0"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE7E8;" FontFamily="Segoe MDL2 Assets" FontSize="19" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="开机启动" Style="{StaticResource RowLabelStyle}"/>
-                                        <ToggleButton Grid.Column="2" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding LaunchOnWindowsStartup}"/>
-                                    </Grid>
-                                    <Border Grid.Row="0" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                    <Border Grid.Row="0" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
+                                        <Grid Margin="14,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="随 Windows 启动 CPALauncher" Style="{StaticResource CompactOptionLabelStyle}"/>
+                                            <ToggleButton Grid.Column="1" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding LaunchOnWindowsStartup}"/>
+                                        </Grid>
+                                    </Border>
 
-                                    <Grid Grid.Row="1" Margin="14,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="0"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE81A;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="关闭到托盘" Style="{StaticResource RowLabelStyle}"/>
-                                        <ToggleButton Grid.Column="2" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding MinimizeToTrayOnClose}"/>
-                                    </Grid>
-                                    <Border Grid.Row="1" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                    <Border Grid.Row="1" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
+                                        <Grid Margin="14,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="打开启动器时拉起 CPA" Style="{StaticResource CompactOptionLabelStyle}"/>
+                                            <ToggleButton Grid.Column="1" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding AutoStartService}"/>
+                                        </Grid>
+                                    </Border>
 
-                                    <Grid Grid.Row="2" Margin="14,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="0"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="启动后打开管理页" Style="{StaticResource RowLabelStyle}"/>
-                                        <ToggleButton Grid.Column="2" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding OpenManagementPageAfterStart}"/>
-                                    </Grid>
-                                    <Border Grid.Row="2" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                    <Border Grid.Row="2" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
+                                        <Grid Margin="26,0,14,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="拉起前等待" Style="{StaticResource CompactOptionLabelStyle}" FontSize="13"/>
+                                                <TextBlock Text="仅自动拉起时生效" Foreground="{DynamicResource SoftMutedBrush}" FontSize="11" Margin="8,1,0,0" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <hc:NumericUpDown Value="{Binding AutoStartDelaySeconds}"
+                                                                  Minimum="0"
+                                                                  Maximum="600"
+                                                                  Width="58"
+                                                                  Height="23"
+                                                                  Padding="8,1"
+                                                                  Background="{DynamicResource ActionBrush}"
+                                                                  BorderBrush="{DynamicResource LineBrush}"
+                                                                  BorderThickness="1"
+                                                                  Foreground="{DynamicResource InkBrush}"
+                                                                  FontSize="12"
+                                                                  IsEnabled="{Binding AutoStartService}"
+                                                                  hc:BorderElement.CornerRadius="7"/>
+                                                <TextBlock Text="秒" FontSize="11" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
 
-                                    <Grid Grid.Row="3" Margin="14,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="0"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="启动时检查更新" Style="{StaticResource RowLabelStyle}"/>
-                                        <ToggleButton Grid.Column="2" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding CheckForUpdatesOnStartup}"/>
-                                    </Grid>
-                                    <Border Grid.Row="3" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                    <Border Grid.Row="3" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
+                                        <Grid Margin="14,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="CPA 启动后打开管理页" Style="{StaticResource CompactOptionLabelStyle}"/>
+                                            <ToggleButton Grid.Column="1" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding OpenManagementPageAfterStart}"/>
+                                        </Grid>
+                                    </Border>
 
-                                    <Grid Grid.Row="4" Margin="14,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="0"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="打开时自动拉起服务" Style="{StaticResource RowLabelStyle}"/>
-                                        <ToggleButton Grid.Column="2" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding AutoStartService}"/>
-                                    </Grid>
-                                    <Border Grid.Row="4" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                    <Border Grid.Row="4" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
+                                        <Grid Margin="14,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="启动时检查 CPA 更新" Style="{StaticResource CompactOptionLabelStyle}"/>
+                                            <ToggleButton Grid.Column="1" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding CheckForUpdatesOnStartup}"/>
+                                        </Grid>
+                                    </Border>
 
-                                    <Grid Grid.Row="5" Margin="14,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="0"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="自动拉起延迟" Style="{StaticResource RowLabelStyle}"/>
-                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                            <hc:NumericUpDown Value="{Binding AutoStartDelaySeconds}"
-                                                              Minimum="0"
-                                                              Maximum="600"
-                                                              Width="68"
-                                                              Height="25"
-                                                              Padding="8,2"
-                                                              Background="{DynamicResource ActionBrush}"
-                                                              BorderBrush="{DynamicResource LineBrush}"
-                                                              BorderThickness="1"
-                                                              Foreground="{DynamicResource InkBrush}"
-                                                              FontSize="13"
-                                                              hc:BorderElement.CornerRadius="7"/>
-                                            <TextBlock Text="秒" FontSize="12" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Margin="6,0,0,0"/>
-                                        </StackPanel>
-                                    </Grid>
-                                    <Border Grid.Row="5" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1"/>
+                                    <Border Grid.Row="5" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
+                                        <Grid Margin="14,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="关闭窗口时最小化到托盘" Style="{StaticResource CompactOptionLabelStyle}"/>
+                                            <ToggleButton Grid.Column="1" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding MinimizeToTrayOnClose}"/>
+                                        </Grid>
+                                    </Border>
 
                                     <Grid Grid.Row="6" Margin="14,0">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="0"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE708;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="深色模式" Style="{StaticResource RowLabelStyle}"/>
-                                        <ToggleButton Grid.Column="2" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding IsDarkMode}"/>
+                                        <TextBlock Text="深色模式" Style="{StaticResource CompactOptionLabelStyle}"/>
+                                        <ToggleButton Grid.Column="1" Style="{StaticResource OptionSwitchStyle}" IsChecked="{Binding IsDarkMode}"/>
                                     </Grid>
                                 </Grid>
                             </Border>

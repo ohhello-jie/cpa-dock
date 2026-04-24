@@ -1,5 +1,9 @@
 using CPALauncher.Services;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace CPALauncher.Views;
 
@@ -47,9 +51,24 @@ public partial class SetupWizardWindow
 
     private void OnWindowMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ButtonState == MouseButtonState.Pressed)
+        if (e.ButtonState == MouseButtonState.Pressed && !IsInteractiveElement(e.OriginalSource as DependencyObject))
         {
             DragMove();
         }
+    }
+
+    private static bool IsInteractiveElement(DependencyObject? source)
+    {
+        while (source is not null)
+        {
+            if (source is ButtonBase or TextBoxBase or PasswordBox)
+            {
+                return true;
+            }
+
+            source = VisualTreeHelper.GetParent(source);
+        }
+
+        return false;
     }
 }
