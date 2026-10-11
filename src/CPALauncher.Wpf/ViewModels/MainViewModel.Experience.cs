@@ -14,7 +14,6 @@ namespace CPALauncher.ViewModels;
 public partial class MainViewModel
 {
     private int _selectedPage;
-    private int _selectedSettingsPage;
     private int _logScope;
     private string _logSearchText = "";
     private string _lastCheckedText = "尚未检查";
@@ -26,7 +25,6 @@ public partial class MainViewModel
     private int _outputFlushScheduled;
 
     public int SelectedPage { get => _selectedPage; set => SetProperty(ref _selectedPage, value); }
-    public int SelectedSettingsPage { get => _selectedSettingsPage; set => SetProperty(ref _selectedSettingsPage, value); }
     public bool AutoScrollLogs { get; set; } = true;
     public string LastCheckedText { get => _lastCheckedText; private set => SetProperty(ref _lastCheckedText, value); }
     public string LatestActivityText { get => _latestActivityText; private set => SetProperty(ref _latestActivityText, value); }
