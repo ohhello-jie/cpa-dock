@@ -8,7 +8,7 @@ A Windows desktop companion for CLIProxyAPI.
 [![Windows](https://img.shields.io/badge/platform-Windows-5265CE)](https://github.com/ohhello-jie/cpa-dock/releases/latest)
 [![MIT](https://img.shields.io/badge/license-MIT-6B7280)](LICENSE)
 
-[CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) 的 Windows 桌面伴侣。启动、管理、更新，一处完成。
+[CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) 的 Windows 桌面启动器。
 
 ![CPA Dock](docs/screenshot.png)
 
@@ -45,7 +45,7 @@ dotnet test CPALauncher.slnx
 powershell -ExecutionPolicy Bypass -File .\scripts\publish-win-x64.ps1
 ```
 
-发布包位于 `artifacts\release\`。图标源文件为 `Assets/logo.svg`，运行 `scripts/build-icon.ps1` 可重新生成 PNG 与 ICO。
+发布包位于 `artifacts\release\`。图标源文件为 `src/CPALauncher.Wpf/Assets/logo.svg`，运行 `scripts/build-icon.ps1` 可重新生成 PNG 与 ICO。
 
 CPA 的 API、认证与代理能力由 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) 提供。
 

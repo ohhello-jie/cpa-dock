@@ -519,8 +519,8 @@ public partial class MainViewModel : ViewModelBase
 
             return _pendingLauncherUpdateInfo is not null
                    && _launcherUpdateStatusText.StartsWith("发现新版本", StringComparison.Ordinal)
-                ? "立即热更新"
-                : "检查启动器";
+                ? "立即更新"
+                : "检查更新";
         }
     }
 

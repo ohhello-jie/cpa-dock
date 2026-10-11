@@ -133,7 +133,7 @@ public partial class MainWindow
         SetSolidResource("SoftMutedBrush", isDark ? "#7D8595" : "#A0A6B1");
         SetSolidResource("LineBrush", isDark ? "#303540" : "#E4E7ED");
         SetSolidResource("CardBrush", isDark ? "#1B1F27" : "#FFFFFF");
-        SetSolidResource("PanelBrush", isDark ? "#12151B" : "#F5F6F8");
+        SetSolidResource("PanelBrush", isDark ? "#222731" : "#F6F7F9");
         SetSolidResource("ActionBrush", isDark ? "#222731" : "#FFFFFF");
         SetSolidResource("ActionHoverBrush", isDark ? "#2D3441" : "#ECEFF5");
         SetSolidResource("DockPrimaryBackgroundBrush", isDark ? "#E3E8F4" : "#202632");
@@ -141,7 +141,7 @@ public partial class MainWindow
         SetSolidResource("AccentBrush", isDark ? "#AAB7FF" : "#5265CE");
         SetSolidResource("LinkBrush", isDark ? "#AAB7FF" : "#5265CE");
         SetSolidResource("AccentSoftBrush", isDark ? "#252C43" : "#EEF0FA");
-        SetSolidResource("WindowBackgroundBrush", isDark ? "#12151B" : "#F5F6F8");
+        SetSolidResource("WindowBackgroundBrush", isDark ? "#12151B" : "#FFFFFF");
     }
 
     private void SetSolidResource(string key, string color)
