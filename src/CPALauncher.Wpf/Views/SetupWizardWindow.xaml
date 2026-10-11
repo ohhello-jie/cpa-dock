@@ -156,11 +156,6 @@
                                FontSize="22"
                                FontWeight="Bold"
                                Foreground="{DynamicResource WizardInkBrush}"/>
-                    <TextBlock Text="确认监听、代理和管理密钥。"
-                               FontSize="13"
-                               Margin="0,7,0,0"
-                               TextWrapping="Wrap"
-                               Foreground="{DynamicResource WizardMutedBrush}"/>
                 </StackPanel>
             </Grid>
 
@@ -213,7 +208,7 @@
                     <TextBox Grid.Row="4" Grid.Column="1"
                              x:Name="ProxyUrlTextBox"
                              Style="{StaticResource WizardTextBoxStyle}"
-                             hc:InfoElement.Placeholder="留空则不使用代理"/>
+                             hc:InfoElement.Placeholder="可选"/>
 
                     <TextBlock Grid.Row="6" Grid.Column="0" Text="管理密钥"
                                FontSize="13" VerticalAlignment="Top"
@@ -222,7 +217,7 @@
                     <StackPanel Grid.Row="6" Grid.Column="1">
                         <PasswordBox x:Name="SecretKeyPasswordBox"
                                      Style="{StaticResource WizardPasswordBoxStyle}"/>
-                        <TextBlock Text="留空将自动生成，并保存到启动器。"
+                        <TextBlock Text="留空自动生成"
                                    FontSize="12" Margin="0,7,0,0"
                                    TextWrapping="Wrap"
                                    Foreground="{DynamicResource WizardMutedBrush}"/>

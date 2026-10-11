@@ -3,7 +3,7 @@ using CPALauncher.Models;
 
 namespace CPALauncher.Services;
 
-public sealed class LauncherSettingsStore
+public sealed class LauncherSettingsStore(string? settingsDirectoryPath = null)
 {
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -13,7 +13,7 @@ public sealed class LauncherSettingsStore
         WriteIndented = true,
     };
 
-    public string SettingsDirectoryPath => Path.Combine(
+    public string SettingsDirectoryPath => settingsDirectoryPath ?? Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "CPALauncher");
 

@@ -108,7 +108,8 @@ internal sealed class MainViewModelTokenImportHarness : MainViewModel
     private readonly bool isManagedRunning;
 
     private MainViewModelTokenImportHarness(LauncherStatus currentStatus, bool isManagedRunning)
-        : base(skipInitialization: true)
+        : base(skipInitialization: true, settingsStore: new CPALauncher.Services.LauncherSettingsStore(
+            Path.Combine(Path.GetTempPath(), "cpa-test-settings-" + Guid.NewGuid().ToString("N"))))
     {
         this.isManagedRunning = isManagedRunning;
         CurrentStatusField.SetValue(this, currentStatus);
