@@ -11,7 +11,10 @@ public static class LauncherDialog
         string messageBoxText,
         string caption,
         MessageBoxButton button,
-        MessageBoxImage icon)
+        MessageBoxImage icon,
+        string? yesText = null,
+        string? noText = null,
+        string? cancelText = null)
     {
         if (button == MessageBoxButton.OK)
         {
@@ -19,7 +22,7 @@ public static class LauncherDialog
             return MessageBoxResult.OK;
         }
 
-        var dialog = new LauncherDialogWindow(caption, messageBoxText, button, icon);
+        var dialog = new LauncherDialogWindow(caption, messageBoxText, button, icon, yesText, noText, cancelText);
         var owner = Application.Current?.MainWindow;
         if (owner != null && owner.IsLoaded)
         {
@@ -49,7 +52,7 @@ public static class LauncherDialog
         {
             var growlInfo = new GrowlInfo
             {
-                Message = string.IsNullOrWhiteSpace(caption) ? message : $"{caption}\n{message}",
+                Message = message,
                 Token = NotificationToken,
                 WaitTime = ResolveWaitTime(icon),
                 ShowDateTime = false,

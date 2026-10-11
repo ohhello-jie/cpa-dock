@@ -38,7 +38,7 @@ public sealed class LauncherHotUpdateService
             Directory.CreateDirectory(extractRoot);
 
             await DownloadPackageAsync(info, zipPath, progress, ct);
-            ZipFile.ExtractToDirectory(zipPath, extractRoot, overwriteFiles: true);
+            await Task.Run(() => ZipFile.ExtractToDirectory(zipPath, extractRoot, overwriteFiles: true), ct);
 
             var packageExecutablePath = Directory
                 .EnumerateFiles(extractRoot, LauncherExecutableName, SearchOption.AllDirectories)

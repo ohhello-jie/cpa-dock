@@ -15,10 +15,17 @@ $PublishDir = Join-Path $ProjectRoot "artifacts\publish\$Runtime\$ModeName"
 $PackageDir = Join-Path $ProjectRoot "artifacts\release\CPALauncher-$Runtime-$ModeName"
 $ZipPath = Join-Path $ProjectRoot "artifacts\release\CPALauncher-$Runtime-$ModeName.zip"
 
+$ArtifactRoot = [IO.Path]::GetFullPath((Join-Path $ProjectRoot 'artifacts')) + [IO.Path]::DirectorySeparatorChar
+foreach ($OutputPath in @($PublishDir, $PackageDir, $ZipPath)) {
+    if (-not [IO.Path]::GetFullPath($OutputPath).StartsWith($ArtifactRoot, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Output path must stay inside artifacts: $OutputPath"
+    }
+}
+
 Write-Host "==> Cleaning previous outputs"
-Remove-Item -Recurse -Force $PublishDir -ErrorAction SilentlyContinue
-Remove-Item -Recurse -Force $PackageDir -ErrorAction SilentlyContinue
-Remove-Item -Force $ZipPath -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $PublishDir -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $PackageDir -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $ZipPath -Force -ErrorAction SilentlyContinue
 
 New-Item -ItemType Directory -Force -Path $PublishDir | Out-Null
 New-Item -ItemType Directory -Force -Path $PackageDir | Out-Null
@@ -67,14 +74,14 @@ Copy-Item $PublishedExe -Destination (Join-Path $PackageDir "CPALauncher.exe") -
 
 $ReadmePath = Join-Path $PackageDir "README.txt"
 @(
-    "CPA Launcher package",
+    "CPA Dock",
     "",
     "1. Run CPALauncher.exe.",
-    "2. On first launch, let the launcher download CPA, then finish the setup wizard.",
-    "3. If you already have CPA, you can also point the launcher to an existing cli-proxy-api.exe and config.yaml.",
-    "4. Launcher settings are stored at %AppData%\CPALauncher\settings.json.",
-    "5. If the CPA path becomes invalid, the launcher will prompt you to install or reconfigure it again.",
-    "6. This launcher does not replace CPA itself or rewrite your config.yaml without your confirmation.",
+    "2. Install CPA, or select an existing executable and config.yaml in Settings.",
+    "3. Start CPA and open its management page.",
+    "",
+    "Settings: %AppData%\CPALauncher\settings.json",
+    "Repository: https://github.com/ohhellojie/cpa-dock",
     "",
     "Publish mode: $ModeName",
     "Runtime: $Runtime",

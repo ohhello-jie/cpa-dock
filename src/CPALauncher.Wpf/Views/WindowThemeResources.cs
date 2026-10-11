@@ -14,41 +14,41 @@ internal static class WindowThemeResources
     public static void ApplyWizardResources(ResourceDictionary resources, bool isDark)
     {
         ApplyCommonResources(resources, "Wizard", isDark);
-        SetSolidResource(resources, "WizardSurfaceBrush", isDark ? "#182638" : "#F7FBFE");
-        SetSolidResource(resources, "WizardInputBrush", isDark ? "#142131" : "#F8FBFE");
+        SetSolidResource(resources, "WizardSurfaceBrush", isDark ? "#1B1F27" : "#FFFFFF");
+        SetSolidResource(resources, "WizardInputBrush", isDark ? "#12151B" : "#FFFFFF");
     }
 
     public static void ApplyDialogResources(ResourceDictionary resources, bool isDark)
     {
         ApplyCommonResources(resources, "Dialog", isDark);
-        SetSolidResource(resources, "DialogSurfaceBrush", isDark ? "#182638" : "#F7FBFE");
+        SetSolidResource(resources, "DialogSurfaceBrush", isDark ? "#1B1F27" : "#FFFFFF");
     }
 
     private static void ApplyCommonResources(ResourceDictionary resources, string prefix, bool isDark)
     {
-        SetSolidResource(resources, $"{prefix}InkBrush", isDark ? "#EAF1F8" : "#142233");
-        SetSolidResource(resources, $"{prefix}MutedBrush", isDark ? "#B3C0CF" : "#536376");
-        SetSolidResource(resources, $"{prefix}LineBrush", isDark ? "#304155" : "#D9E2EC");
-        SetSolidResource(resources, $"{prefix}WindowEdgeBrush", isDark ? "#203148" : "#EAF1F8");
-        SetSolidResource(resources, $"{prefix}ActionBrush", isDark ? "#1B2B3F" : "#F8FBFE");
-        SetSolidResource(resources, $"{prefix}ActionHoverBrush", isDark ? "#24364D" : "#FFFFFF");
-        SetSolidResource(resources, $"{prefix}ActionPressedBrush", isDark ? "#152236" : "#EDF4FA");
-        SetSolidResource(resources, $"{prefix}PrimaryHoverBrush", isDark ? "#4BA977" : "#3FA36C");
-        SetSolidResource(resources, $"{prefix}PrimaryPressedBrush", isDark ? "#2F8C5A" : "#2F8C5A");
+        SetSolidResource(resources, $"{prefix}InkBrush", isDark ? "#ECEEF3" : "#252A34");
+        SetSolidResource(resources, $"{prefix}MutedBrush", isDark ? "#A6ADBB" : "#7A818F");
+        SetSolidResource(resources, $"{prefix}LineBrush", isDark ? "#303540" : "#E4E7ED");
+        SetSolidResource(resources, $"{prefix}WindowEdgeBrush", isDark ? "#303540" : "#ECEEF3");
+        SetSolidResource(resources, $"{prefix}ActionBrush", isDark ? "#222731" : "#FFFFFF");
+        SetSolidResource(resources, $"{prefix}ActionHoverBrush", isDark ? "#2D3441" : "#FFFFFF");
+        SetSolidResource(resources, $"{prefix}ActionPressedBrush", isDark ? "#222731" : "#EDF4FA");
+        SetSolidResource(resources, $"{prefix}PrimaryHoverBrush", isDark ? "#47556C" : "#344054");
+        SetSolidResource(resources, $"{prefix}PrimaryPressedBrush", isDark ? "#202632" : "#202632");
 
         SetGradientResource(
             resources,
             $"{prefix}BackgroundBrush",
             isDark
-                ? new[] { "#101B29", "#152336" }
-                : new[] { "#F7FAFD", "#EAF1F8" });
+                ? new[] { "#12151B", "#12151B" }
+                : new[] { "#F5F6F8", "#F5F6F8" });
 
         SetGradientResource(
             resources,
             $"{prefix}PrimaryBrush",
             isDark
-                ? new[] { "#61C487", "#349866" }
-                : new[] { "#57B77C", "#349866" });
+                ? new[] { "#202632", "#202632" }
+                : new[] { "#202632", "#202632" });
     }
 
     private static void SetSolidResource(ResourceDictionary resources, string key, string color)

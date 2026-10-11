@@ -10,17 +10,18 @@ public partial class LauncherDialogWindow
 {
     private MessageBoxResult _result = MessageBoxResult.None;
 
-    public LauncherDialogWindow(string caption, string message, MessageBoxButton button, MessageBoxImage image)
+    public LauncherDialogWindow(string caption, string message, MessageBoxButton button, MessageBoxImage image,
+        string? yesText = null, string? noText = null, string? cancelText = null)
     {
         InitializeComponent();
         WindowThemeResources.ApplyDialogResources(Resources, WindowThemeResources.IsDarkModeEnabled());
         DataContext = new LauncherDialogViewModel(caption, message, image);
-        BuildButtons(button);
+        BuildButtons(button, yesText, noText, cancelText);
     }
 
     public MessageBoxResult Result => _result;
 
-    private void BuildButtons(MessageBoxButton button)
+    private void BuildButtons(MessageBoxButton button, string? yesText, string? noText, string? cancelText)
     {
         switch (button)
         {
@@ -29,13 +30,13 @@ public partial class LauncherDialogWindow
                 AddButton("确定", MessageBoxResult.OK, isPrimary: true);
                 break;
             case MessageBoxButton.YesNo:
-                AddButton("否", MessageBoxResult.No, isPrimary: false);
-                AddButton("是", MessageBoxResult.Yes, isPrimary: true);
+                AddButton(noText ?? "否", MessageBoxResult.No, isPrimary: false);
+                AddButton(yesText ?? "是", MessageBoxResult.Yes, isPrimary: true);
                 break;
             case MessageBoxButton.YesNoCancel:
-                AddButton("取消", MessageBoxResult.Cancel, isPrimary: false);
-                AddButton("否", MessageBoxResult.No, isPrimary: false);
-                AddButton("是", MessageBoxResult.Yes, isPrimary: true);
+                AddButton(cancelText ?? "取消", MessageBoxResult.Cancel, isPrimary: false);
+                AddButton(noText ?? "否", MessageBoxResult.No, isPrimary: false);
+                AddButton(yesText ?? "是", MessageBoxResult.Yes, isPrimary: true);
                 break;
             default:
                 AddButton("确定", MessageBoxResult.OK, isPrimary: true);
