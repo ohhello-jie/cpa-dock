@@ -148,7 +148,7 @@ public sealed class CpaUpdateService
             }
 
             // Extract all contents to target directory
-            ZipFile.ExtractToDirectory(tempZipPath, targetDirectory, overwriteFiles: true);
+            await Task.Run(() => ZipFile.ExtractToDirectory(tempZipPath, targetDirectory, overwriteFiles: true), ct);
 
             // Locate cli-proxy-api.exe
             var exePath = Directory.EnumerateFiles(targetDirectory, "cli-proxy-api.exe", SearchOption.AllDirectories)
@@ -216,7 +216,7 @@ public sealed class CpaUpdateService
                     return (false, "zip 中未找到 cli-proxy-api.exe。");
 
                 extractedExePath = Path.Combine(dir, $"cpa-new-{Guid.NewGuid():N}.exe");
-                entry.ExtractToFile(extractedExePath, overwrite: true);
+                await Task.Run(() => entry.ExtractToFile(extractedExePath, overwrite: true), ct);
             }
 
             // Backup old exe → replace with new

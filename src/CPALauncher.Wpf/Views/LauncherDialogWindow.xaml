@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="{Binding Caption}"
-        Width="480"
+        Width="560"
         SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
@@ -151,10 +151,6 @@
                                FontSize="20"
                                FontWeight="Bold"
                                Foreground="{DynamicResource DialogInkBrush}"/>
-                    <TextBlock Text="{Binding ToneText}"
-                               FontSize="12"
-                               Foreground="{DynamicResource DialogMutedBrush}"
-                               Margin="0,4,0,0"/>
                 </StackPanel>
             </Grid>
 

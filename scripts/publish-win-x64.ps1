@@ -12,13 +12,20 @@ $PublishProfile = "SingleFile"
 
 $ModeName = if ($FrameworkDependent) { "framework-dependent" } else { "self-contained" }
 $PublishDir = Join-Path $ProjectRoot "artifacts\publish\$Runtime\$ModeName"
-$PackageDir = Join-Path $ProjectRoot "artifacts\release\CPALauncher-$Runtime-$ModeName"
-$ZipPath = Join-Path $ProjectRoot "artifacts\release\CPALauncher-$Runtime-$ModeName.zip"
+$PackageDir = Join-Path $ProjectRoot "artifacts\release\CPA-Dock-$Runtime-$ModeName"
+$ZipPath = Join-Path $ProjectRoot "artifacts\release\CPA-Dock-$Runtime-$ModeName.zip"
+
+$ArtifactRoot = [IO.Path]::GetFullPath((Join-Path $ProjectRoot 'artifacts')) + [IO.Path]::DirectorySeparatorChar
+foreach ($OutputPath in @($PublishDir, $PackageDir, $ZipPath)) {
+    if (-not [IO.Path]::GetFullPath($OutputPath).StartsWith($ArtifactRoot, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Output path must stay inside artifacts: $OutputPath"
+    }
+}
 
 Write-Host "==> Cleaning previous outputs"
-Remove-Item -Recurse -Force $PublishDir -ErrorAction SilentlyContinue
-Remove-Item -Recurse -Force $PackageDir -ErrorAction SilentlyContinue
-Remove-Item -Force $ZipPath -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $PublishDir -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $PackageDir -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $ZipPath -Force -ErrorAction SilentlyContinue
 
 New-Item -ItemType Directory -Force -Path $PublishDir | Out-Null
 New-Item -ItemType Directory -Force -Path $PackageDir | Out-Null
@@ -45,9 +52,9 @@ if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish failed."
 }
 
-$PublishedExe = Join-Path $PublishDir "CPALauncher.exe"
+$PublishedExe = Join-Path $PublishDir "CPA Dock.exe"
 if (-not (Test-Path $PublishedExe)) {
-    throw "Published CPALauncher.exe was not found: $PublishedExe"
+    throw "Published CPA Dock.exe was not found: $PublishedExe"
 }
 
 $PublishedFiles = @(Get-ChildItem -Path $PublishDir -Recurse -File)
@@ -63,22 +70,21 @@ if ($UnexpectedFiles.Count -gt 0) {
 }
 
 Write-Host "==> Assembling deliverable folder"
-Copy-Item $PublishedExe -Destination (Join-Path $PackageDir "CPALauncher.exe") -Force
+Copy-Item $PublishedExe -Destination (Join-Path $PackageDir "CPA Dock.exe") -Force
+
+Copy-Item -LiteralPath (Join-Path $ProjectRoot "LICENSE") -Destination (Join-Path $PackageDir "LICENSE.txt")
+Copy-Item -LiteralPath (Join-Path $ProjectRoot "src\CPALauncher.Wpf\Assets\Lucide-LICENSE.txt") -Destination (Join-Path $PackageDir "THIRD-PARTY-LICENSES.txt")
 
 $ReadmePath = Join-Path $PackageDir "README.txt"
 @(
-    "CPA Launcher package",
+    "CPA Dock",
     "",
-    "1. Run CPALauncher.exe.",
-    "2. On first launch, let the launcher download CPA, then finish the setup wizard.",
-    "3. If you already have CPA, you can also point the launcher to an existing cli-proxy-api.exe and config.yaml.",
-    "4. Launcher settings are stored at %AppData%\CPALauncher\settings.json.",
-    "5. If the CPA path becomes invalid, the launcher will prompt you to install or reconfigure it again.",
-    "6. This launcher does not replace CPA itself or rewrite your config.yaml without your confirmation.",
+    "1. 解压到任意目录，运行 CPA Dock.exe。",
+    "2. 在设置中选择已有 CPA 程序与 config.yaml，或点击「安装 CPA」。",
+    "3. 启动 CPA，打开管理页。",
     "",
-    "Publish mode: $ModeName",
-    "Runtime: $Runtime",
-    "Generated at: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    "设置：%AppData%\CPALauncher\settings.json",
+    "https://github.com/ohhellojie/cpa-dock"
 ) | Set-Content -Path $ReadmePath -Encoding UTF8
 
 Write-Host "==> Creating zip package"

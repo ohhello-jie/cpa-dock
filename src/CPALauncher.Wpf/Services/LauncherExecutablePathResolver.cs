@@ -8,7 +8,7 @@ public static class LauncherExecutablePathResolver
         string? processPath = null,
         string? mainModulePath = null,
         string? baseDirectory = null,
-        string executableName = "CPALauncher.exe")
+        string executableName = "CPA Dock.exe")
     {
         if (!string.IsNullOrWhiteSpace(processPath))
         {

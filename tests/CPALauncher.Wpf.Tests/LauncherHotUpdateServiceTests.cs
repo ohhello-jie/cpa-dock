@@ -8,8 +8,12 @@ namespace CPALauncher.Wpf.Tests;
 
 public sealed class LauncherHotUpdateServiceTests
 {
-    [Fact]
-    public async Task PrepareHotUpdateAsync_WhenPackageContainsLauncherExe_StagesPackageAndScript()
+    [Theory]
+    [InlineData("CPALauncher.exe", "CPALauncher.exe")]
+    [InlineData("CPA Dock.exe", "CPA Dock.exe")]
+    [InlineData("CPALauncher.exe", "CPA Dock.exe")]
+    [InlineData("CPA Dock.exe", "CPALauncher.exe")]
+    public async Task PrepareHotUpdateAsync_WhenPackageContainsLauncherExe_StagesPackageAndScript(string installedName, string packageName)
     {
         var tempRoot = CreateTempRoot();
         try
@@ -17,10 +21,10 @@ public sealed class LauncherHotUpdateServiceTests
             var installDirectory = Path.Combine(tempRoot, "install");
             Directory.CreateDirectory(installDirectory);
 
-            var currentExecutablePath = Path.Combine(installDirectory, "CPALauncher.exe");
+            var currentExecutablePath = Path.Combine(installDirectory, installedName);
             await File.WriteAllTextAsync(currentExecutablePath, "old launcher");
 
-            var packageBytes = CreateZip(("CPALauncher.exe", "new launcher"), ("README.txt", "notes"));
+            var packageBytes = CreateZip((packageName, "new launcher"), ("README.txt", "notes"));
             using var httpClient = new HttpClient(new BinaryStubHttpMessageHandler(packageBytes));
             var service = new LauncherHotUpdateService(httpClient);
             var progress = new CaptureProgress();
@@ -35,7 +39,7 @@ public sealed class LauncherHotUpdateServiceTests
             Assert.Equal("v0.3.0", result.Package.VersionTag);
             Assert.Equal(installDirectory, result.Package.InstallDirectory);
             Assert.Equal(Path.GetFullPath(currentExecutablePath), result.Package.LauncherExecutablePath);
-            Assert.True(File.Exists(Path.Combine(result.Package.PackageDirectory, "CPALauncher.exe")));
+            Assert.True(File.Exists(Path.Combine(result.Package.PackageDirectory, packageName)));
             Assert.True(File.Exists(result.Package.ApplyScriptPath));
 
             var script = await File.ReadAllTextAsync(result.Package.ApplyScriptPath);
