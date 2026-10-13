@@ -35,6 +35,7 @@ public partial class SetupWizardWindow
         HostTextBox.Text = LauncherSetupDefaults.DefaultHost;
         PortNumericUpDown.Value = LauncherSetupDefaults.DefaultPort;
         ProxyUrlTextBox.Text = LauncherSetupDefaults.DefaultProxyUrl;
+        ContentRendered += (_, _) => WindowPlacement.CenterOverOwner(this);
     }
 
     private void OnFinishClick(object sender, System.Windows.RoutedEventArgs e)

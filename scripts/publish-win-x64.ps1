@@ -12,8 +12,8 @@ $PublishProfile = "SingleFile"
 
 $ModeName = if ($FrameworkDependent) { "framework-dependent" } else { "self-contained" }
 $PublishDir = Join-Path $ProjectRoot "artifacts\publish\$Runtime\$ModeName"
-$PackageDir = Join-Path $ProjectRoot "artifacts\release\CPALauncher-$Runtime-$ModeName"
-$ZipPath = Join-Path $ProjectRoot "artifacts\release\CPALauncher-$Runtime-$ModeName.zip"
+$PackageDir = Join-Path $ProjectRoot "artifacts\release\CPA-Dock-$Runtime-$ModeName"
+$ZipPath = Join-Path $ProjectRoot "artifacts\release\CPA-Dock-$Runtime-$ModeName.zip"
 
 $ArtifactRoot = [IO.Path]::GetFullPath((Join-Path $ProjectRoot 'artifacts')) + [IO.Path]::DirectorySeparatorChar
 foreach ($OutputPath in @($PublishDir, $PackageDir, $ZipPath)) {
@@ -52,9 +52,9 @@ if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish failed."
 }
 
-$PublishedExe = Join-Path $PublishDir "CPALauncher.exe"
+$PublishedExe = Join-Path $PublishDir "CPA Dock.exe"
 if (-not (Test-Path $PublishedExe)) {
-    throw "Published CPALauncher.exe was not found: $PublishedExe"
+    throw "Published CPA Dock.exe was not found: $PublishedExe"
 }
 
 $PublishedFiles = @(Get-ChildItem -Path $PublishDir -Recurse -File)
@@ -70,22 +70,21 @@ if ($UnexpectedFiles.Count -gt 0) {
 }
 
 Write-Host "==> Assembling deliverable folder"
-Copy-Item $PublishedExe -Destination (Join-Path $PackageDir "CPALauncher.exe") -Force
+Copy-Item $PublishedExe -Destination (Join-Path $PackageDir "CPA Dock.exe") -Force
+
+Copy-Item -LiteralPath (Join-Path $ProjectRoot "LICENSE") -Destination (Join-Path $PackageDir "LICENSE.txt")
+Copy-Item -LiteralPath (Join-Path $ProjectRoot "src\CPALauncher.Wpf\Assets\Lucide-LICENSE.txt") -Destination (Join-Path $PackageDir "THIRD-PARTY-LICENSES.txt")
 
 $ReadmePath = Join-Path $PackageDir "README.txt"
 @(
     "CPA Dock",
     "",
-    "1. Run CPALauncher.exe.",
-    "2. Install CPA, or select an existing executable and config.yaml in Settings.",
-    "3. Start CPA and open its management page.",
+    "1. 解压到任意目录，运行 CPA Dock.exe。",
+    "2. 在设置中选择已有 CPA 程序与 config.yaml，或点击「安装 CPA」。",
+    "3. 启动 CPA，打开管理页。",
     "",
-    "Settings: %AppData%\CPALauncher\settings.json",
-    "Repository: https://github.com/ohhello-jie/cpa-dock",
-    "",
-    "Publish mode: $ModeName",
-    "Runtime: $Runtime",
-    "Generated at: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    "设置：%AppData%\CPALauncher\settings.json",
+    "https://github.com/ohhellojie/cpa-dock"
 ) | Set-Content -Path $ReadmePath -Encoding UTF8
 
 Write-Host "==> Creating zip package"

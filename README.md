@@ -4,13 +4,13 @@
 
 A Windows desktop companion for CLIProxyAPI.
 
-[![Release](https://img.shields.io/github/v/release/ohhello-jie/cpa-dock?label=release)](https://github.com/ohhello-jie/cpa-dock/releases/latest)
-[![Windows](https://img.shields.io/badge/platform-Windows-5265CE)](https://github.com/ohhello-jie/cpa-dock/releases/latest)
+[![Release](https://img.shields.io/github/v/release/ohhellojie/cpa-dock?label=release)](https://github.com/ohhellojie/cpa-dock/releases/latest)
+[![Windows](https://img.shields.io/badge/platform-Windows-5265CE)](https://github.com/ohhellojie/cpa-dock/releases/latest)
 [![MIT](https://img.shields.io/badge/license-MIT-6B7280)](LICENSE)
 
 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) 的 Windows 桌面启动器。
 
-![CPA Dock](docs/screenshot.png)
+![CPA Dock（示例数据）](docs/screenshot.png)
 
 ## 日常使用
 
@@ -21,12 +21,12 @@ A Windows desktop companion for CLIProxyAPI.
 
 ## 开始
 
-1. 从 [Releases](https://github.com/ohhello-jie/cpa-dock/releases/latest) 下载 Windows x64 自包含包。
-2. 解压，运行 `CPALauncher.exe`。无需安装 .NET。
+1. 从 [Releases](https://github.com/ohhellojie/cpa-dock/releases/latest) 下载 Windows x64 自包含包。
+2. 解压，运行 `CPA Dock.exe`。无需安装 .NET。
 3. 点击「安装 CPA」，或在设置中选择已有程序与 `config.yaml`。
 4. 启动 CPA，打开管理页。
 
-CPA Dock 原名 CPA Launcher。程序文件名与设置目录沿用旧名称，原有配置可继续使用。
+CPA Dock 原名 CPA Launcher。设置目录保持不变，原有配置可继续使用。
 
 ## 文件
 
@@ -39,7 +39,7 @@ CPA Dock 原名 CPA Launcher。程序文件名与设置目录沿用旧名称，�
 .NET 8 · WPF · [HandyControl](https://github.com/HandyOrg/HandyControl)
 
 ```powershell
-git clone https://github.com/ohhello-jie/cpa-dock.git
+git clone https://github.com/ohhellojie/cpa-dock.git
 cd cpa-dock
 dotnet test CPALauncher.slnx
 powershell -ExecutionPolicy Bypass -File .\scripts\publish-win-x64.ps1
