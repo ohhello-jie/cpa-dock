@@ -1,0 +1,207 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <DataTemplate x:Key="IconArrowLeftRight">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M8 3 4 7l4 4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M4 7h16" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="m16 21 4-4-4-4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M20 17H4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconMinus">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M5 12h14" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconSquare">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Rectangle Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Canvas.Left="3" Canvas.Top="3" Width="18" Height="18" RadiusX="2" RadiusY="2"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconX">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M18 6 6 18" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="m6 6 12 12" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconCopy">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Rectangle Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Canvas.Left="8" Canvas.Top="8" Width="14" Height="14" RadiusX="2" RadiusY="2"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconFolderOpen">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconFileInput">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M4 11V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M14 2v5a1 1 0 0 0 1 1h5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M2 15h10" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="m9 18 3-3-3-3" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconChevronUp">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="m18 15-6-6-6 6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconChevronDown">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="m6 9 6 6 6-6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconArrowUpRight">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M7 7h10v10" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M7 17 17 7" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconEyeOff">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M14.084 14.158a3 3 0 0 1-4.242-4.242" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="m2 2 20 20" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconEye">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Ellipse Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Canvas.Left="9.0" Canvas.Top="9.0" Width="6.0" Height="6.0"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconFileSearch">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M14 2v5a1 1 0 0 0 1 1h5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Ellipse Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Canvas.Left="9.0" Canvas.Top="12.0" Width="5.0" Height="5.0"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M13.3 16.3 15 18" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconSquarePen">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconChevronRight">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="m9 18 6-6-6-6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconRefreshCw">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M21 3v5h-5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M8 16H3v5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconSearch">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="m21 21-4.34-4.34" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Ellipse Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Canvas.Left="3.0" Canvas.Top="3.0" Width="16.0" Height="16.0"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconCopyPlus">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Line Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" X1="15" Y1="12" X2="15" Y2="18" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Line Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" X1="12" Y1="15" X2="18" Y2="15" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Rectangle Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Canvas.Left="8" Canvas.Top="8" Width="14" Height="14" RadiusX="2" RadiusY="2"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconDownload">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M12 15V3" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="m7 10 5 5 5-5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconTrash2">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M10 11v6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M14 11v6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M3 6h18" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Data="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconMoreHorizontal">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Ellipse Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Canvas.Left="11.0" Canvas.Top="11.0" Width="2.0" Height="2.0"/>
+        <Ellipse Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Canvas.Left="18.0" Canvas.Top="11.0" Width="2.0" Height="2.0"/>
+        <Ellipse Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" Canvas.Left="4.0" Canvas.Top="11.0" Width="2.0" Height="2.0"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconLayoutGrid">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Rectangle Canvas.Left="3" Canvas.Top="3" Width="7" Height="7" RadiusX="1" RadiusY="1" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round"/>
+        <Rectangle Canvas.Left="14" Canvas.Top="3" Width="7" Height="7" RadiusX="1" RadiusY="1" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round"/>
+        <Rectangle Canvas.Left="3" Canvas.Top="14" Width="7" Height="7" RadiusX="1" RadiusY="1" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round"/>
+        <Rectangle Canvas.Left="14" Canvas.Top="14" Width="7" Height="7" RadiusX="1" RadiusY="1" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconTerminal">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Data="M4 17 L10 11 L4 5 M12 19 H20" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+  <DataTemplate x:Key="IconSettings2">
+    <Viewbox Width="16" Height="16">
+      <Canvas Width="24" Height="24">
+        <Path Data="M20 7 H9 M14 17 H4" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        <Ellipse Canvas.Left="3" Canvas.Top="4" Width="6" Height="6" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round"/>
+        <Ellipse Canvas.Left="14" Canvas.Top="14" Width="6" Height="6" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}" StrokeThickness="1.7" StrokeLineJoin="Round"/>
+      </Canvas>
+    </Viewbox>
+  </DataTemplate>
+</ResourceDictionary>

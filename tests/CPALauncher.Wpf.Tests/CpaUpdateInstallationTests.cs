@@ -1,0 +1,77 @@
+using System.IO.Compression;
+using System.Net;
+using CPALauncher.Models;
+using CPALauncher.Services;
+using Xunit;
+
+namespace CPALauncher.Wpf.Tests;
+
+public sealed class CpaUpdateInstallationTests : IDisposable
+{
+    private readonly string directory = Path.Combine(Path.GetTempPath(), "cpa-update-" + Guid.NewGuid().ToString("N"));
+    public CpaUpdateInstallationTests() => Directory.CreateDirectory(directory);
+
+    [Fact]
+    public async Task Install_ExtractsCompletePackage_AndFindsExecutable()
+    {
+        using var client = CreateClient();
+        var result = await new CpaUpdateService(client).InstallLatestAsync(directory, Info);
+        Assert.True(result.Success, result.Message);
+        Assert.Equal("new binary", File.ReadAllText(result.ExePath!));
+        Assert.True(File.Exists(Path.Combine(directory, "config.example.yaml")));
+    }
+
+    [Fact]
+    public async Task Update_ReplacesOnlyExecutable_PreservesConfig_AndRemovesTemporaryFiles()
+    {
+        using var client = CreateClient();
+        var exe = Path.Combine(directory, "cli-proxy-api.exe");
+        var config = Path.Combine(directory, "config.yaml");
+        File.WriteAllText(exe, "old binary"); File.WriteAllText(config, "custom config");
+        var result = await new CpaUpdateService(client).ApplyUpdateAsync(Info, exe);
+        Assert.True(result.Success, result.Message);
+        Assert.Equal("new binary", File.ReadAllText(exe));
+        Assert.Equal("custom config", File.ReadAllText(config));
+        Assert.Equal(2, Directory.GetFiles(directory).Length);
+    }
+
+    [Fact]
+    public async Task CancelledUpdate_PreservesExistingExecutable()
+    {
+        using var client = CreateClient();
+        using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
+        var exe = Path.Combine(directory, "cli-proxy-api.exe"); File.WriteAllText(exe, "old binary");
+        var result = await new CpaUpdateService(client).ApplyUpdateAsync(Info, exe, ct: cancellation.Token);
+        Assert.False(result.Success);
+        Assert.Equal("old binary", File.ReadAllText(exe));
+        Assert.Single(Directory.GetFiles(directory));
+    }
+
+    private static CpaUpdateInfo Info => new()
+    {
+        TagName = "v1.2.3", NewVersion = new Version(1, 2, 3),
+        AssetDownloadUrl = "https://example.invalid/fixture.zip", ReleaseUrl = "https://example.invalid/release",
+        AssetSize = 0,
+    };
+
+    private static HttpClient CreateClient()
+    {
+        using var bytes = new MemoryStream();
+        using (var zip = new ZipArchive(bytes, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            using (var writer = new StreamWriter(zip.CreateEntry("cli-proxy-api.exe").Open())) writer.Write("new binary");
+            using (var writer = new StreamWriter(zip.CreateEntry("config.example.yaml").Open())) writer.Write("sample");
+        }
+        return new HttpClient(new ZipHandler(bytes.ToArray()));
+    }
+
+    private sealed class ZipHandler(byte[] bytes) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(bytes) });
+        }
+    }
+    public void Dispose() => Directory.Delete(directory, recursive: true);
+}

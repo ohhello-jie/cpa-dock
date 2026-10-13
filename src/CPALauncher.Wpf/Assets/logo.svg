@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64">
+  <title>CPA Dock</title>
+  <rect width="64" height="64" rx="12" fill="#202632"/>
+  <path d="M18 39 V25 Q18 19 24 19 H43 M36 12 L43 19 L36 26 M46 25 V39 Q46 45 40 45 H21 M28 38 L21 45 L28 52" fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

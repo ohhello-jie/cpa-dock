@@ -35,6 +35,6 @@ public sealed class LauncherExecutablePathResolverTests
             mainModulePath: "",
             baseDirectory: @"C:\Base");
 
-        Assert.Equal(Path.Combine(@"C:\Base", "CPALauncher.exe"), result);
+        Assert.Equal(Path.Combine(@"C:\Base", "CPA Dock.exe"), result);
     }
 }

@@ -1,0 +1,116 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ControlTemplate x:Key="ScrollPageButton" TargetType="RepeatButton">
+        <Border Background="Transparent" />
+    </ControlTemplate>
+    <Style x:Key="DockScrollBar" TargetType="ScrollBar">
+        <Setter Property="Width" Value="14" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Grid Background="{TemplateBinding Background}">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True" Orientation="{TemplateBinding Orientation}"
+                               Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}"
+                               ViewportSize="{TemplateBinding ViewportSize}" Value="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton x:Name="Before" Command="ScrollBar.PageUpCommand" Template="{StaticResource ScrollPageButton}" Focusable="False" />
+                            </Track.DecreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb>
+                                    <Thumb.Style>
+                                        <Style TargetType="Thumb"><Setter Property="MinHeight" Value="28" /><Setter Property="MinWidth" Value="6" /><Style.Triggers>
+                                            <DataTrigger Binding="{Binding Orientation, RelativeSource={RelativeSource AncestorType=ScrollBar}}" Value="Horizontal"><Setter Property="MinHeight" Value="6" /><Setter Property="MinWidth" Value="28" /></DataTrigger>
+                                        </Style.Triggers></Style>
+                                    </Thumb.Style>
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Border x:Name="Handle" Background="{DynamicResource SwitchBrush}" CornerRadius="3" Margin="4,0" />
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Handle" Property="Background" Value="{DynamicResource MutedBrush}" /></Trigger>
+                                                <Trigger Property="IsDragging" Value="True"><Setter TargetName="Handle" Property="Background" Value="{DynamicResource MutedBrush}" /></Trigger>
+                                                <DataTrigger Binding="{Binding Orientation, RelativeSource={RelativeSource AncestorType=ScrollBar}}" Value="Horizontal"><Setter TargetName="Handle" Property="Margin" Value="0,4" /></DataTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Track.Thumb>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton x:Name="After" Command="ScrollBar.PageDownCommand" Template="{StaticResource ScrollPageButton}" Focusable="False" />
+                            </Track.IncreaseRepeatButton>
+                        </Track>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Orientation" Value="Horizontal">
+                            <Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False" />
+                            <Setter TargetName="Before" Property="Command" Value="ScrollBar.PageLeftCommand" />
+                            <Setter TargetName="After" Property="Command" Value="ScrollBar.PageRightCommand" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal"><Setter Property="Width" Value="Auto" /><Setter Property="Height" Value="14" /></Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="DockScrollViewer" TargetType="ScrollViewer">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollViewer">
+                    <Grid Background="{TemplateBinding Background}" ClipToBounds="True">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" Content="{TemplateBinding Content}"
+                                                ContentTemplate="{TemplateBinding ContentTemplate}" Margin="{TemplateBinding Padding}"
+                                                CanContentScroll="{TemplateBinding CanContentScroll}" ClipToBounds="True" />
+                        <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Column="1" Style="{StaticResource DockScrollBar}"
+                                   Margin="6,0,0,0" Orientation="Vertical" Maximum="{TemplateBinding ScrollableHeight}"
+                                   ViewportSize="{TemplateBinding ViewportHeight}" Value="{Binding VerticalOffset, RelativeSource={RelativeSource TemplatedParent}, Mode=OneWay}"
+                                   Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" />
+                        <ScrollBar x:Name="PART_HorizontalScrollBar" Grid.Row="1" Style="{StaticResource DockScrollBar}"
+                                   Margin="0,6,0,0" Orientation="Horizontal" Maximum="{TemplateBinding ScrollableWidth}"
+                                   ViewportSize="{TemplateBinding ViewportWidth}" Value="{Binding HorizontalOffset, RelativeSource={RelativeSource TemplatedParent}, Mode=OneWay}"
+                                   Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="DockLogList" TargetType="ListBox">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBox">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                        <ScrollViewer x:Name="LogScrollViewer" Style="{StaticResource DockScrollViewer}" Padding="{TemplateBinding Padding}" Focusable="False"
+                                      CanContentScroll="{TemplateBinding ScrollViewer.CanContentScroll}"
+                                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}">
+                            <ItemsPresenter />
+                        </ScrollViewer>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="DockSearchBox" TargetType="TextBox">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+        <Setter Property="Background" Value="{DynamicResource CardBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Surface" CornerRadius="6" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource MutedBrush}" /></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>
