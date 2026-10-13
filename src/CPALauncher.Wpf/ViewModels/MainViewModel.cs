@@ -655,6 +655,11 @@ public partial class MainViewModel : ViewModelBase
 
     private async Task InitializeAsync()
     {
+        if (_settings.LaunchLauncherOnWindowsStartup)
+        {
+            try { _startupManager.SetEnabled(true); }
+            catch (Exception ex) { AddDiagnosticLine($"[launcher] 无法更新开机启动路径：{ex.Message}"); }
+        }
         await RefreshAsync();
         _refreshTimer.Start();
 
@@ -1586,7 +1591,8 @@ public partial class MainViewModel : ViewModelBase
 
     private static bool IsLauncherWindowsPackageAsset(string name)
     {
-        return name.StartsWith("CPALauncher-", StringComparison.OrdinalIgnoreCase)
+        return (name.StartsWith("CPA-Dock-", StringComparison.OrdinalIgnoreCase)
+                || name.StartsWith("CPALauncher-", StringComparison.OrdinalIgnoreCase))
                && name.Contains("win-x64", StringComparison.OrdinalIgnoreCase)
                && name.Contains("self-contained", StringComparison.OrdinalIgnoreCase)
                && name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
@@ -1638,7 +1644,7 @@ public partial class MainViewModel : ViewModelBase
             Title = "选择 cli-proxy-api.exe"
         };
 
-        if (dialog.ShowDialog() == true)
+        if (dialog.ShowDialog(Application.Current.MainWindow) == true)
         {
             ExecutablePath = dialog.FileName;
             _ = RefreshAsync();
@@ -1655,7 +1661,7 @@ public partial class MainViewModel : ViewModelBase
             Title = "选择 config.yaml"
         };
 
-        if (dialog.ShowDialog() == true)
+        if (dialog.ShowDialog(Application.Current.MainWindow) == true)
         {
             ConfigPath = dialog.FileName;
             _ = RefreshAsync();
@@ -1733,7 +1739,7 @@ public partial class MainViewModel : ViewModelBase
             FileName = $"cpa-launcher-log-{DateTime.Now:yyyyMMdd-HHmmss}.txt"
         };
 
-        if (dialog.ShowDialog() == true)
+        if (dialog.ShowDialog(Application.Current.MainWindow) == true)
         {
             try
             {

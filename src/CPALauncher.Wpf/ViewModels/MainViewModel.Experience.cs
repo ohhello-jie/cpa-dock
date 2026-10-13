@@ -14,6 +14,7 @@ namespace CPALauncher.ViewModels;
 public partial class MainViewModel
 {
     private int _selectedPage;
+    private int _recentLogCapacity = 3;
     private int _logScope;
     private string _logSearchText = "";
     private string _lastCheckedText = "尚未检查";
@@ -28,6 +29,16 @@ public partial class MainViewModel
     public bool AutoScrollLogs { get; set; } = true;
     public string LastCheckedText { get => _lastCheckedText; private set => SetProperty(ref _lastCheckedText, value); }
     public string LatestActivityText { get => _latestActivityText; private set => SetProperty(ref _latestActivityText, value); }
+    public IReadOnlyList<string> RecentActivityLines => DiagnosticLines.TakeLast(_recentLogCapacity).ToArray();
+    public void SetRecentLogCapacity(int capacity)
+    {
+        capacity = Math.Clamp(capacity, 1, 100);
+        if (_recentLogCapacity == capacity) return;
+        _recentLogCapacity = capacity;
+        OnPropertyChanged(nameof(RecentActivityLines));
+    }
+    public Visibility RecentEmptyVisibility => DiagnosticLines.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility RecentActivityVisibility => DiagnosticLines.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
     public ICollectionView DiagnosticView { get; private set; } = null!;
     public string LogSearchText
     {
@@ -67,11 +78,22 @@ public partial class MainViewModel
     public ICommand CopyVisibleLogsCommand { get; private set; } = null!;
     public ICommand OpenAuthDirectoryCommand { get; private set; } = null!;
     public ICommand OpenConfigurationFileCommand { get; private set; } = null!;
+    public ICommand SetLightThemeCommand { get; private set; } = null!;
+    public ICommand SetDarkThemeCommand { get; private set; } = null!;
 
     private void InitializeExperience()
     {
         DiagnosticView = CollectionViewSource.GetDefaultView(DiagnosticLines);
         DiagnosticView.Filter = item => item is string line && DiagnosticLogFilter.Matches(line, LogSearchText, LogScope);
+        DiagnosticLines.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(RecentActivityLines));
+            OnPropertyChanged(nameof(RecentEmptyVisibility));
+            OnPropertyChanged(nameof(RecentActivityVisibility));
+            System.Windows.Input.CommandManager.InvalidateRequerySuggested();
+        };
+        SetLightThemeCommand = new RelayCommand(() => IsDarkMode = false);
+        SetDarkThemeCommand = new RelayCommand(() => IsDarkMode = true);
         GoOverviewCommand = new RelayCommand(() => SelectedPage = 0);
         GoDiagnosticsCommand = new RelayCommand(() => SelectedPage = 1);
         GoSettingsCommand = new RelayCommand(() => SelectedPage = 2);
@@ -91,7 +113,7 @@ public partial class MainViewModel
             {
                 Title = "导入 CPA 凭证", Filter = "JSON 凭证 (*.json)|*.json", Multiselect = true,
             };
-            if (dialog.ShowDialog() == true) await ImportDroppedTokensAsync(dialog.FileNames);
+            if (dialog.ShowDialog(Application.Current.MainWindow) == true) await ImportDroppedTokensAsync(dialog.FileNames);
         }, () => !string.IsNullOrWhiteSpace(_authDirectory));
         CopyServiceUrlCommand = new RelayCommand(() => CopyText(_runtimeInfo?.BaseUrl ?? "", "服务地址已复制。"), () => _runtimeInfo is not null);
         CopyVisibleLogsCommand = new RelayCommand(() => CopyText(string.Join(Environment.NewLine, DiagnosticView.Cast<string>()), "当前日志已复制。"));

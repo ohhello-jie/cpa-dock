@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <AssemblyName>CPALauncher</AssemblyName>
+    <AssemblyName>CPA Dock</AssemblyName>
     <RootNamespace>CPALauncher</RootNamespace>
     <Company>CPADock</Company>
     <Product>CPA Dock</Product>
@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <Resource Include="Assets\app.ico" />
+    <Resource Include="Assets\Lucide-LICENSE.txt" />
   </ItemGroup>
 
 </Project>

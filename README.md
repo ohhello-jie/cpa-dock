@@ -10,7 +10,7 @@ A Windows desktop companion for CLIProxyAPI.
 
 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) 的 Windows 桌面启动器。
 
-![CPA Dock](docs/screenshot.png)
+![CPA Dock（示例数据）](docs/screenshot.png)
 
 ## 日常使用
 
@@ -22,11 +22,11 @@ A Windows desktop companion for CLIProxyAPI.
 ## 开始
 
 1. 从 [Releases](https://github.com/ohhellojie/cpa-dock/releases/latest) 下载 Windows x64 自包含包。
-2. 解压，运行 `CPALauncher.exe`。无需安装 .NET。
+2. 解压，运行 `CPA Dock.exe`。无需安装 .NET。
 3. 点击「安装 CPA」，或在设置中选择已有程序与 `config.yaml`。
 4. 启动 CPA，打开管理页。
 
-CPA Dock 原名 CPA Launcher。程序文件名与设置目录沿用旧名称，原有配置可继续使用。
+CPA Dock 原名 CPA Launcher。设置目录保持不变，原有配置可继续使用。
 
 ## 文件
 

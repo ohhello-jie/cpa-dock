@@ -17,6 +17,7 @@ public partial class LauncherDialogWindow
         WindowThemeResources.ApplyDialogResources(Resources, WindowThemeResources.IsDarkModeEnabled());
         DataContext = new LauncherDialogViewModel(caption, message, image);
         BuildButtons(button, yesText, noText, cancelText);
+        ContentRendered += (_, _) => WindowPlacement.CenterOverOwner(this);
     }
 
     public MessageBoxResult Result => _result;

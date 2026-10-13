@@ -8,7 +8,7 @@ namespace CPALauncher.Services;
 
 public sealed class LauncherHotUpdateService
 {
-    private const string LauncherExecutableName = "CPALauncher.exe";
+    private static readonly string[] LauncherExecutableNames = ["CPA Dock.exe", "CPALauncher.exe"];
     private readonly HttpClient httpClient;
 
     public LauncherHotUpdateService(HttpClient httpClient)
@@ -40,14 +40,14 @@ public sealed class LauncherHotUpdateService
             await DownloadPackageAsync(info, zipPath, progress, ct);
             await Task.Run(() => ZipFile.ExtractToDirectory(zipPath, extractRoot, overwriteFiles: true), ct);
 
-            var packageExecutablePath = Directory
-                .EnumerateFiles(extractRoot, LauncherExecutableName, SearchOption.AllDirectories)
+            var packageExecutablePath = LauncherExecutableNames
+                .SelectMany(name => Directory.EnumerateFiles(extractRoot, name, SearchOption.AllDirectories))
                 .FirstOrDefault();
 
             if (packageExecutablePath is null)
             {
                 TryDeleteDirectory(updateRoot);
-                return LauncherHotUpdatePreparationResult.Failed("启动器更新包中未找到 CPALauncher.exe。");
+                return LauncherHotUpdatePreparationResult.Failed("启动器更新包中未找到 CPA Dock.exe 或 CPALauncher.exe。");
             }
 
             var packageDirectory = Path.GetDirectoryName(packageExecutablePath)!;
@@ -171,15 +171,21 @@ public sealed class LauncherHotUpdateService
 
                 Start-Sleep -Milliseconds 600
 
-                $packageExe = Join-Path $PackageDirectory "CPALauncher.exe"
-                if (-not (Test-Path -LiteralPath $packageExe)) {
-                    throw "CPALauncher.exe was not found in update package."
+                $packageExe = @("CPA Dock.exe", "CPALauncher.exe") |
+                    ForEach-Object { Join-Path $PackageDirectory $_ } |
+                    Where-Object { Test-Path -LiteralPath $_ } |
+                    Select-Object -First 1
+                if (-not $packageExe) {
+                    throw "CPA Dock executable was not found in update package."
                 }
 
                 Write-UpdateLog "Copying update payload to $InstallDirectory."
-                Get-ChildItem -LiteralPath $PackageDirectory -Force | ForEach-Object {
+                Get-ChildItem -LiteralPath $PackageDirectory -Force | Where-Object {
+                    $_.Name -notin @("CPA Dock.exe", "CPALauncher.exe")
+                } | ForEach-Object {
                     Copy-Item -LiteralPath $_.FullName -Destination $InstallDirectory -Recurse -Force
                 }
+                Copy-Item -LiteralPath $packageExe -Destination $LauncherPath -Force
 
                 Write-UpdateLog "Restarting CPALauncher from $LauncherPath."
                 Start-Process -FilePath $LauncherPath -WorkingDirectory $InstallDirectory

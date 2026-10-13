@@ -1,4 +1,4 @@
-using System.Collections.Specialized;
+﻿using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -23,6 +23,8 @@ public partial class MainWindow
     private bool _isExitPromptOpen;
     private DispatcherTimer? _dragLeaveClearTimer;
     private bool _isLogScrollPending;
+    private System.Windows.Size? _sizeBeforeMinimize;
+    private System.Windows.Size _lastNormalSize = new(900, 560);
 
     public MainWindow() : this(new MainViewModel()) { }
 
@@ -30,10 +32,15 @@ public partial class MainWindow
     {
         InitializeComponent();
         DataContext = viewModel;
+        SizeChanged += (_, e) =>
+        {
+            if (WindowState == WindowState.Normal && e.NewSize.Width > 0 && e.NewSize.Height > 0)
+                _lastNormalSize = e.NewSize;
+        };
         try
         {
             Icon = new System.Windows.Media.Imaging.BitmapImage(
-                new Uri("pack://application:,,,/CPALauncher;component/Assets/app.ico"));
+                new Uri($"pack://application:,,,/{typeof(MainWindow).Assembly.GetName().Name};component/Assets/app.ico"));
         }
         catch { /* 图标加载失败不阻塞启动 */ }
         SourceInitialized += OnSourceInitialized;
@@ -55,6 +62,7 @@ public partial class MainWindow
         SetupTrayIcon();
         SetupAutoScroll();
         SetupLocalThemeSync();
+        RequestWindowFit();
 
         if (WindowState == WindowState.Minimized)
         {
@@ -70,17 +78,24 @@ public partial class MainWindow
         }
     }
 
-    private static IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
+        if (msg == 0x0112 && (wParam.ToInt64() & 0xFFF0) == 0xF030)
+        {
+            handled = true; // Keep maximization disabled while allowing bounded resizing.
+            return IntPtr.Zero;
+        }
+        if (msg is 0x02E0 or 0x007E or 0x001A or 0x0232)
+            RequestWindowFit(); // DPI, display, work-area changes, or move to another monitor.
         if (msg == WmGetMinMaxInfo)
         {
-            handled = TryApplyMaximizedBounds(hwnd, lParam);
+            handled = TryApplyWindowBounds(hwnd, lParam);
         }
 
         return IntPtr.Zero;
     }
 
-    private static bool TryApplyMaximizedBounds(IntPtr hwnd, IntPtr lParam)
+    private bool TryApplyWindowBounds(IntPtr hwnd, IntPtr lParam)
     {
         var monitor = MonitorFromWindow(hwnd, MonitorDefaultToNearest);
         if (monitor == IntPtr.Zero)
@@ -104,8 +119,16 @@ public partial class MainWindow
 
         minMaxInfo.MaxPosition.X = workArea.Left - monitorArea.Left;
         minMaxInfo.MaxPosition.Y = workArea.Top - monitorArea.Top;
-        minMaxInfo.MaxSize.X = workArea.Right - workArea.Left;
-        minMaxInfo.MaxSize.Y = workArea.Bottom - workArea.Top;
+        var toDevice = HwndSource.FromHwnd(hwnd)?.CompositionTarget?.TransformToDevice ?? Matrix.Identity;
+        var width = Math.Min(workArea.Right - workArea.Left, (int)Math.Round(MaximumWidth * toDevice.M11));
+        var height = Math.Min(workArea.Bottom - workArea.Top, (int)Math.Round(MaximumHeight * toDevice.M22));
+        minMaxInfo.MaxSize = new NativePoint { X = width, Y = height };
+        minMaxInfo.MaxTrackSize = minMaxInfo.MaxSize;
+        minMaxInfo.MinTrackSize = new NativePoint
+        {
+            X = Math.Min(width, (int)Math.Round(MinimumWidth * toDevice.M11)),
+            Y = Math.Min(height, (int)Math.Round(MinimumHeight * toDevice.M22)),
+        };
 
         Marshal.StructureToPtr(minMaxInfo, lParam, fDeleteOld: false);
         return true;
@@ -128,20 +151,22 @@ public partial class MainWindow
 
     private void ApplyLocalChromeTheme(bool isDark)
     {
-        SetSolidResource("InkBrush", isDark ? "#ECEEF3" : "#252A34");
-        SetSolidResource("MutedBrush", isDark ? "#A6ADBB" : "#7A818F");
+        SetSolidResource("SidebarBrush", isDark ? "#24262A" : "#FAFAFA");
+        SetSolidResource("InkBrush", isDark ? "#E8EAED" : "#23262C");
+        SetSolidResource("MutedBrush", isDark ? "#9DA3AE" : "#777D86");
         SetSolidResource("SoftMutedBrush", isDark ? "#7D8595" : "#A0A6B1");
-        SetSolidResource("LineBrush", isDark ? "#303540" : "#E4E7ED");
-        SetSolidResource("CardBrush", isDark ? "#1B1F27" : "#FFFFFF");
-        SetSolidResource("PanelBrush", isDark ? "#222731" : "#F6F7F9");
-        SetSolidResource("ActionBrush", isDark ? "#222731" : "#FFFFFF");
-        SetSolidResource("ActionHoverBrush", isDark ? "#2D3441" : "#ECEFF5");
-        SetSolidResource("DockPrimaryBackgroundBrush", isDark ? "#E3E8F4" : "#202632");
-        SetSolidResource("DockPrimaryForegroundBrush", isDark ? "#202632" : "#FFFFFF");
-        SetSolidResource("AccentBrush", isDark ? "#AAB7FF" : "#5265CE");
-        SetSolidResource("LinkBrush", isDark ? "#AAB7FF" : "#5265CE");
-        SetSolidResource("AccentSoftBrush", isDark ? "#252C43" : "#EEF0FA");
-        SetSolidResource("WindowBackgroundBrush", isDark ? "#12151B" : "#FFFFFF");
+        SetSolidResource("LineBrush", isDark ? "#343840" : "#E5E7EB");
+        SetSolidResource("CardBrush", isDark ? "#1C1E23" : "#FFFFFF");
+        SetSolidResource("PanelBrush", isDark ? "#24272D" : "#F5F6F7");
+        SetSolidResource("ActionBrush", isDark ? "#1C1E23" : "#FFFFFF");
+        SetSolidResource("ActionHoverBrush", isDark ? "#30343C" : "#EFF0F2");
+        SetSolidResource("DockPrimaryBackgroundBrush", isDark ? "#E8EAED" : "#292C31");
+        SetSolidResource("DockPrimaryForegroundBrush", isDark ? "#1C1E23" : "#FFFFFF");
+        SetSolidResource("AccentBrush", isDark ? "#E8EAED" : "#292C31");
+        SetSolidResource("LinkBrush", isDark ? "#E8EAED" : "#23262C");
+        SetSolidResource("AccentSoftBrush", isDark ? "#24272D" : "#F5F6F7");
+        SetSolidResource("SwitchBrush", isDark ? "#454B55" : "#CBCED3");
+        SetSolidResource("WindowBackgroundBrush", isDark ? "#1C1E23" : "#FFFFFF");
     }
 
     private void SetSolidResource(string key, string color)
@@ -161,9 +186,13 @@ public partial class MainWindow
 
     private void OnTitleBarMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        for (var source = e.OriginalSource as DependencyObject; source is not null; source = VisualTreeHelper.GetParent(source))
+        {
+            if (source is System.Windows.Controls.Primitives.ButtonBase or TabItem)
+                return;
+        }
         if (e.ClickCount == 2)
         {
-            ToggleMaximizeRestore();
             return;
         }
 
@@ -178,21 +207,18 @@ public partial class MainWindow
         WindowState = WindowState.Minimized;
     }
 
-    private void OnMaximizeRestoreClick(object sender, RoutedEventArgs e)
-    {
-        ToggleMaximizeRestore();
-    }
-
     private void OnCloseClick(object sender, RoutedEventArgs e)
     {
         Close();
     }
 
-    private void ToggleMaximizeRestore()
+    private void OnMoreClick(object sender, RoutedEventArgs e)
     {
-        WindowState = WindowState == WindowState.Maximized
-            ? WindowState.Normal
-            : WindowState.Maximized;
+        if (sender is Button { ContextMenu: { } menu } button)
+        {
+            menu.PlacementTarget = button;
+            menu.IsOpen = true;
+        }
     }
 
     private void SetupAutoScroll()
@@ -324,7 +350,7 @@ public partial class MainWindow
 
     private void SetupTrayIcon()
     {
-        var iconStream = Application.GetResourceStream(new Uri("pack://application:,,,/CPALauncher;component/Assets/app.ico"));
+        var iconStream = Application.GetResourceStream(new Uri($"pack://application:,,,/{typeof(MainWindow).Assembly.GetName().Name};component/Assets/app.ico"));
         var icon = iconStream != null ? new Icon(iconStream.Stream) : SystemIcons.Application;
 
         _trayIcon = new TaskbarIcon
@@ -369,6 +395,31 @@ public partial class MainWindow
     protected override void OnStateChanged(EventArgs e)
     {
         base.OnStateChanged(e);
+
+        SizeToContent = SizeToContent.Manual;
+        if (WindowState == WindowState.Maximized)
+        {
+            WindowState = WindowState.Normal;
+            return;
+        }
+        if (WindowState == WindowState.Minimized)
+            _sizeBeforeMinimize = _lastNormalSize;
+        if (WindowState == WindowState.Normal)
+        {
+            if (_sizeBeforeMinimize is { } restoreSize)
+            {
+                _sizeBeforeMinimize = null;
+                // Apply after native restore, which may retain an older normal rectangle.
+                Dispatcher.BeginInvoke(() =>
+                {
+                    if (WindowState != WindowState.Normal) return;
+                    Width = restoreSize.Width;
+                    Height = restoreSize.Height;
+                    RequestWindowFit();
+                }, DispatcherPriority.Loaded);
+            }
+            else RequestWindowFit();
+        }
 
         if (WindowState == WindowState.Minimized && DataContext is MainViewModel { MinimizeToTrayOnClose: true })
         {
