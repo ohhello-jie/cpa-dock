@@ -101,5 +101,19 @@ public sealed class CpaLifecycleTests : IDisposable
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
             => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(zip) });
     }
-    public void Dispose() { manager.StopAsync().GetAwaiter().GetResult(); manager.Dispose(); Directory.Delete(root, true); }
+    public void Dispose()
+    {
+        var stopped = manager.StopAsync().GetAwaiter().GetResult();
+        Assert.True(stopped.Success, stopped.Message);
+        Assert.False(manager.IsManagedProcessRunning);
+        manager.Dispose();
+        // Windows can briefly retain the executable image after process exit.
+        // A persistent lock still fails the test instead of silently leaking its directory.
+        for (var attempt = 0; ; attempt++)
+        {
+            try { Directory.Delete(root, true); return; }
+            catch (Exception ex) when (attempt < 20 && ex is IOException or UnauthorizedAccessException)
+            { Thread.Sleep(100); }
+        }
+    }
 }
