@@ -20,9 +20,32 @@ public partial class App : Application
 
         base.OnStartup(e);
 
+        var applyIndex = Array.IndexOf(e.Args, "--update-apply");
+        var transaction = applyIndex >= 0 && applyIndex + 1 < e.Args.Length ? e.Args[applyIndex + 1] : null;
+        try
+        {
+            if (transaction is null && LauncherUpdateRecovery.StartPendingRecovery(Environment.ProcessPath!))
+            {
+                Shutdown();
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"更新恢复未完成，已保留原文件。\n{ex.Message}", "CPA Dock", MessageBoxButton.OK, MessageBoxImage.Warning);
+            Shutdown();
+            return;
+        }
+
         var startMinimized = e.Args.Any(arg => string.Equals(arg, "--minimized", StringComparison.OrdinalIgnoreCase));
         var mainWindow = new MainWindow(startMinimized);
         MainWindow = mainWindow;
+        if (transaction is not null)
+            mainWindow.ContentRendered += (_, _) =>
+            {
+                try { LauncherUpdateRecovery.AcknowledgeStartup(Environment.ProcessPath!, transaction); }
+                catch { Shutdown(1); }
+            };
         mainWindow.Show();
         _singleInstanceCoordinator.StartListening(HandleSingleInstanceActivation);
         if (e.Args.Contains("--update-failed", StringComparer.OrdinalIgnoreCase))

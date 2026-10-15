@@ -92,7 +92,7 @@ public static class CpaConfigGenerator
         if (!string.IsNullOrEmpty(dir))
             Directory.CreateDirectory(dir);
 
-        File.WriteAllText(configPath, sb.ToString(), new UTF8Encoding(false));
+        AtomicFile.WriteText(configPath, sb.ToString(), configPath + ".bak");
         return effectiveSecretKey;
     }
 

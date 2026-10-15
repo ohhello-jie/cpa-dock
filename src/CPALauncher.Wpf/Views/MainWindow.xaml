@@ -563,7 +563,7 @@
           </DockPanel>
         </Grid>
       </TabItem>
-      <TabItem Header="设置" Tag="{StaticResource IconSettings2}">
+      <TabItem Header="设置" Tag="{StaticResource IconSettings2}" IsEnabled="{Binding CanEditSettings}">
         <Grid x:Name="SettingsViewport">
           <ScrollViewer x:Name="SettingsScroll" VerticalAlignment="Stretch" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" VerticalContentAlignment="Top" Style="{StaticResource DockScrollViewer}">
             <Grid x:Name="SettingsContent" VerticalAlignment="Top">

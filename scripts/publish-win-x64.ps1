@@ -89,6 +89,15 @@ $ReadmePath = Join-Path $PackageDir "README.txt"
 
 Write-Host "==> Creating zip package"
 Compress-Archive -Path (Join-Path $PackageDir "*") -DestinationPath $ZipPath -Force
+& (Join-Path $PSScriptRoot 'verify-package.ps1') -ZipPath $ZipPath -ExecutablePath $PublishedExe
+
+$LegacyZipPath = Join-Path (Split-Path $ZipPath) "CPALauncher-$Runtime-$ModeName.zip"
+Copy-Item -LiteralPath $ZipPath -Destination $LegacyZipPath -Force
+$Hashes = @($ZipPath, $LegacyZipPath) | ForEach-Object {
+    $Hash = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant()
+    "$Hash  $([IO.Path]::GetFileName($_))"
+}
+$Hashes | Set-Content -LiteralPath (Join-Path (Split-Path $ZipPath) 'SHA256SUMS.txt') -Encoding ascii
 
 Write-Host ""
 Write-Host "Publish completed:"

@@ -118,121 +118,85 @@ public sealed class CpaUpdateService
         string targetDirectory, CpaUpdateInfo info,
         IProgress<(long downloaded, long total)>? progress = null, CancellationToken ct = default)
     {
-        var tempZipPath = Path.Combine(Path.GetTempPath(), $"cpa-install-{Guid.NewGuid():N}.zip");
-
+        var target = Path.Combine(Path.GetFullPath(targetDirectory), "cli-proxy-api.exe");
+        if (File.Exists(target)) return (false, "目录中已有 CPA，请使用更新功能。", null);
+        var prepared = await PrepareUpdateAsync(info, target, progress: progress, ct: ct);
+        if (prepared.Transaction is not { } transaction) return (false, prepared.Message, null);
+        var example = Path.Combine(targetDirectory, "config.example.yaml");
+        var addedExample = false;
         try
         {
-            Directory.CreateDirectory(targetDirectory);
-
-            // Download zip with progress
-            using var request = new HttpRequestMessage(HttpMethod.Get, info.AssetDownloadUrl);
-            request.Headers.Add("User-Agent", "CPALauncher");
-
-            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-            response.EnsureSuccessStatusCode();
-
-            var totalBytes = response.Content.Headers.ContentLength ?? info.AssetSize;
-            long downloadedBytes = 0;
-
-            await using (var contentStream = await response.Content.ReadAsStreamAsync(ct))
-            await using (var fileStream = new FileStream(tempZipPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true))
+            // Only the executable and optional example configuration belong to installation.
+            using (var zip = ZipFile.OpenRead(Path.Combine(transaction.DirectoryPath, "package.zip")))
             {
-                var buffer = new byte[81920];
-                int bytesRead;
-                while ((bytesRead = await contentStream.ReadAsync(buffer, ct)) > 0)
+                var entry = zip.Entries.FirstOrDefault(e => e.Name == "config.example.yaml");
+                if (entry is not null && !File.Exists(example))
                 {
-                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
-                    downloadedBytes += bytesRead;
-                    progress?.Report((downloadedBytes, totalBytes));
+                    entry.ExtractToFile(example);
+                    addedExample = true;
                 }
             }
-
-            // Extract all contents to target directory
-            await Task.Run(() => ZipFile.ExtractToDirectory(tempZipPath, targetDirectory, overwriteFiles: true), ct);
-
-            // Locate cli-proxy-api.exe
-            var exePath = Directory.EnumerateFiles(targetDirectory, "cli-proxy-api.exe", SearchOption.AllDirectories)
-                .FirstOrDefault();
-
-            if (exePath is null)
-                return (false, "zip 中未找到 cli-proxy-api.exe。", null);
-
-            return (true, $"CPA {info.TagName} 安装成功。", exePath);
-        }
-        catch (OperationCanceledException)
-        {
-            return (false, "安装已取消。", null);
-        }
-        catch (Exception ex)
-        {
-            return (false, $"安装失败：{ex.Message}", null);
-        }
-        finally
-        {
-            TryDeleteFile(tempZipPath);
-        }
-    }
-
-    public async Task<(bool Success, string Message)> ApplyUpdateAsync(
-        CpaUpdateInfo info, string targetExePath, IProgress<(long downloaded, long total)>? progress = null, CancellationToken ct = default)
-    {
-        var dir = Path.GetDirectoryName(targetExePath)!;
-        var tempZipPath = Path.Combine(dir, $"cpa-update-{Guid.NewGuid():N}.zip");
-        var backupPath = Path.Combine(dir, $"cpa-backup-{Guid.NewGuid():N}.exe");
-        string? extractedExePath = null;
-
-        try
-        {
-            await UpdatePackageDownloader.DownloadAsync(_httpClient, info, tempZipPath, progress, ct);
-
-            // Extract cli-proxy-api.exe from zip
-            using (var archive = ZipFile.OpenRead(tempZipPath))
-            {
-                var entry = archive.Entries.FirstOrDefault(e =>
-                    e.Name.Equals("cli-proxy-api.exe", StringComparison.OrdinalIgnoreCase));
-
-                if (entry is null)
-                    return (false, "zip 中未找到 cli-proxy-api.exe。");
-
-                extractedExePath = Path.Combine(dir, $"cpa-new-{Guid.NewGuid():N}.exe");
-                await Task.Run(() => entry.ExtractToFile(extractedExePath, overwrite: true), ct);
-            }
-
             ct.ThrowIfCancellationRequested();
-            // Same-volume replacement avoids the gap between renaming the old and new executable.
-            if (File.Exists(targetExePath))
-                File.Replace(extractedExePath, targetExePath, backupPath);
-            else
-                File.Move(extractedExePath, targetExePath);
-            TryDeleteFile(backupPath);
-
-            return (true, $"CPA 已更新到 {info.TagName}。");
-        }
-        catch (OperationCanceledException)
-        {
-            return (false, ct.IsCancellationRequested ? "更新已取消。" : "更新下载超时，请重试。");
+            transaction.Apply();
+            transaction.Commit();
+            return (true, $"CPA {info.TagName} 安装成功。", target);
         }
         catch (Exception ex)
         {
             try
             {
-                // Win32 ReplaceFile may fail after moving the original to its backup (error 1177).
-                if (File.Exists(backupPath))
-                {
-                    if (File.Exists(targetExePath)) File.Replace(backupPath, targetExePath, null);
-                    else File.Move(backupPath, targetExePath);
-                }
+                transaction.Rollback();
+                transaction.FinishRollback();
+                if (addedExample) TryDeleteFile(example);
             }
-            catch (Exception recoveryError)
-            {
-                return (false, $"更新失败：{ex.Message}。恢复失败：{recoveryError.Message}。原程序备份：{backupPath}");
-            }
-            return (false, $"更新失败：{ex.Message}");
+            catch (Exception recovery) { return (false, $"安装失败：{ex.Message}。恢复未完成：{recovery.Message}", null); }
+            return (false, $"安装失败：{ex.Message}", null);
         }
-        finally
+    }
+
+    public async Task<(bool Success, string Message, CpaUpdateTransaction? Transaction)> PrepareUpdateAsync(
+        CpaUpdateInfo info, string targetExePath, string? previousVersion = null, bool wasRunning = false,
+        IProgress<(long downloaded, long total)>? progress = null, CancellationToken ct = default)
+    {
+        CpaUpdateTransaction? transaction = null;
+        try
         {
-            TryDeleteFile(tempZipPath);
-            if (extractedExePath is not null) TryDeleteFile(extractedExePath);
+            transaction = CpaUpdateTransaction.Create(targetExePath, previousVersion, info.TagName, wasRunning);
+            var zipPath = Path.Combine(transaction.DirectoryPath, "package.zip");
+            await UpdatePackageDownloader.DownloadAsync(_httpClient, info, zipPath, progress, ct);
+            using var archive = ZipFile.OpenRead(zipPath);
+            var entry = archive.Entries.SingleOrDefault(e => e.Name.Equals("cli-proxy-api.exe", StringComparison.OrdinalIgnoreCase));
+            if (entry is null || entry.Length == 0) throw new InvalidDataException("更新包中未找到有效的 cli-proxy-api.exe。");
+            await Task.Run(() => entry.ExtractToFile(transaction.StagedPath), ct);
+            ct.ThrowIfCancellationRequested();
+            transaction.Prepare();
+            return (true, "更新包已准备完成。", transaction);
+        }
+        catch (Exception ex)
+        {
+            transaction?.DiscardPreparation();
+            return (false, ex is OperationCanceledException ? "更新下载已取消或超时。" : $"更新准备失败：{ex.Message}", null);
+        }
+    }
+
+    // File-only entry point. The desktop flow retains the transaction until its health check completes.
+    public async Task<(bool Success, string Message)> ApplyUpdateAsync(
+        CpaUpdateInfo info, string targetExePath, IProgress<(long downloaded, long total)>? progress = null, CancellationToken ct = default)
+    {
+        var preparation = await PrepareUpdateAsync(info, targetExePath, progress: progress, ct: ct);
+        if (preparation.Transaction is not { } transaction) return (false, preparation.Message);
+        try
+        {
+            ct.ThrowIfCancellationRequested();
+            transaction.Apply();
+            transaction.Commit();
+            return (true, $"CPA 已更新到 {info.TagName}。");
+        }
+        catch (Exception ex)
+        {
+            try { transaction.Rollback(); transaction.FinishRollback(); }
+            catch (Exception recovery) { return (false, $"更新失败：{ex.Message}。恢复失败：{recovery.Message}。备份：{transaction.DirectoryPath}"); }
+            return (false, $"更新失败：{ex.Message}");
         }
     }
 
