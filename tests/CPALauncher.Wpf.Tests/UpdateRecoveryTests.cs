@@ -138,7 +138,7 @@ public sealed class UpdateRecoveryTests : IDisposable
             Assert.True(crash ? result.ExitCode != 0 : result.ExitCode == 0, result.Output);
             Assert.Equal(crash ? "old" : "new", File.ReadAllText(Path.Combine(Install, "started.txt")));
             Assert.Equal(crash ? "old readme" : "new readme", File.ReadAllText(Path.Combine(Install, "README.txt")));
-            Assert.Equal(!crash, File.Exists(Path.Combine(Install, "extra", "added.txt")));
+            Assert.False(File.Exists(Path.Combine(Install, "extra", "added.txt")));
             Assert.Empty(Directory.GetDirectories(Install, ".cpa-update-*"));
             AssertUserFiles();
         }
@@ -185,7 +185,7 @@ public sealed class UpdateRecoveryTests : IDisposable
     private void CompileProbe(string destination, string version, bool crash)
     {
         var source = Path.Combine(root, version + ".cs");
-        File.WriteAllText(source, "using System; using System.IO; using System.Threading; class Probe { static int Main() { var d=AppDomain.CurrentDomain.BaseDirectory; File.WriteAllText(Path.Combine(d,\"started.txt\"),\"" + version + "\"); File.WriteAllText(Path.Combine(d,\"probe.pid\"),System.Diagnostics.Process.GetCurrentProcess().Id.ToString()); " + (crash ? "Thread.Sleep(1500); return 7;" : "Thread.Sleep(20000); return 0;") + " } }");
+        File.WriteAllText(source, "using System; using System.IO; using System.Threading; class Probe { static int Main(string[] args) { var d=AppDomain.CurrentDomain.BaseDirectory; File.WriteAllText(Path.Combine(d,\"started.txt\"),\"" + version + "\"); File.WriteAllText(Path.Combine(d,\"probe.pid\"),System.Diagnostics.Process.GetCurrentProcess().Id.ToString()); " + (crash ? "Thread.Sleep(1500); return 7;" : "if(args.Length == 2 && args[0] == \"--update-apply\") File.WriteAllText(Path.Combine(args[1],\"ready\"),System.Diagnostics.Process.GetCurrentProcess().Id.ToString()); Thread.Sleep(60000); return 0;") + " } }");
         var start = new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Microsoft.NET", "Framework64", "v4.0.30319", "csc.exe")) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
         foreach (var arg in new[] { "/nologo", "/target:winexe", "/out:" + destination, source }) start.ArgumentList.Add(arg);
         using var compiler = Process.Start(start)!;
@@ -273,14 +273,52 @@ public sealed class UpdateRecoveryTests : IDisposable
         finally { new DirectoryInfo(Install).SetAccessControl(original); }
     }
 
-    private async Task<(int ExitCode, string Output)> RunUpdater(int processId = 2147483647)
+    [Fact]
+    public async Task LauncherApply_KilledHelper_ReplaysJournalAndRestoresOldVersion()
+    {
+        CompileProbe(Launcher, "old", false);
+        CompileProbe(Path.Combine(Package, "CPA Dock.exe"), "new", false);
+        File.WriteAllText(Path.Combine(Install, "README.txt"), "old readme");
+        File.WriteAllText(Path.Combine(Package, "README.txt"), "new readme");
+        Process? helper = null;
+        var update = RunUpdater(onStarted: process => helper = process);
+        string? recovery = null;
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        while (true)
+        {
+            deadline.Token.ThrowIfCancellationRequested();
+            recovery = Directory.GetDirectories(Install, ".cpa-update-*").FirstOrDefault();
+            var path = recovery is null ? "" : Path.Combine(recovery, "state.json");
+            if (File.Exists(path))
+            {
+                using var state = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
+                if (state.RootElement.GetProperty("ProcessId").GetInt32() > 0) break;
+            }
+            await Task.Delay(10, deadline.Token);
+        }
+        helper!.Kill(); // Only the updater dies; recovery must identify and stop its launched child.
+        await update;
+        Assert.True(File.Exists(Path.Combine(recovery!, "恢复旧版.cmd")));
+        Assert.Equal("new readme", File.ReadAllText(Path.Combine(Install, "README.txt")));
+        var result = await RunUpdater(recoveryDirectory: recovery);
+        Assert.True(result.ExitCode == 0, result.Output);
+        Assert.Equal("old", File.ReadAllText(Path.Combine(Install, "started.txt")));
+        Assert.Equal("old readme", File.ReadAllText(Path.Combine(Install, "README.txt")));
+        Assert.Empty(Directory.GetDirectories(Install, ".cpa-update-*"));
+        AssertUserFiles();
+    }
+
+    private async Task<(int ExitCode, string Output)> RunUpdater(int processId = 2147483647,
+        string? recoveryDirectory = null, Action<Process>? onStarted = null)
     {
         var script = Path.Combine(root, "apply.ps1");
         var content = (string)typeof(LauncherHotUpdateService).GetMethod("BuildApplyScriptContent", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!.Invoke(null, null)!;
         await File.WriteAllTextAsync(script, content, new System.Text.UTF8Encoding(true));
         var start = new ProcessStartInfo("powershell.exe") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
         foreach (var arg in new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, "-ProcessId", processId.ToString(), "-PackageDirectory", Package, "-InstallDirectory", Install, "-LauncherPath", Launcher, "-WaitSeconds", "1" }) start.ArgumentList.Add(arg);
+        if (recoveryDirectory is not null) { start.ArgumentList.Add("-RecoverDirectory"); start.ArgumentList.Add(recoveryDirectory); }
         using var process = Process.Start(start)!;
+        onStarted?.Invoke(process);
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -309,5 +347,5 @@ public sealed class UpdateRecoveryTests : IDisposable
             foreach (var (name, text) in entries) { using var writer = new StreamWriter(archive.CreateEntry(name).Open()); writer.Write(text); }
         return stream.ToArray();
     }
-    public void Dispose() => Directory.Delete(root, true);
+    public void Dispose() { StopProbe(); Directory.Delete(root, true); }
 }

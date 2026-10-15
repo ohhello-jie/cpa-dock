@@ -31,6 +31,8 @@ public partial class MainViewModel : ViewModelBase
     private bool _forceConfigurationRefreshPending;
     private string? _lastConfigurationError;
     private bool _serviceReachable;
+    private bool _updateRecoveryBlocked;
+    public bool CanEditSettings => !IsUpdateInProgress && !_updateRecoveryBlocked && _settingsStore.CanSave;
     private bool _startupTimedOut;
     private bool _isLoadingSettings;
     private readonly WindowsStartupManager _startupManager = new();
@@ -441,6 +443,7 @@ public partial class MainViewModel : ViewModelBase
             {
                 OnPropertyChanged(nameof(UpdateCardText));
                 OnPropertyChanged(nameof(UpdateActionText));
+                OnPropertyChanged(nameof(CanEditSettings));
                 CommandManager.InvalidateRequerySuggested();
             }
         }
@@ -655,6 +658,29 @@ public partial class MainViewModel : ViewModelBase
 
     private async Task InitializeAsync()
     {
+        var resumeRecoveredService = false;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(_settings.ExecutablePath))
+            {
+                var pending = CpaUpdateTransaction.OpenPending(_settings.ExecutablePath);
+                if (pending is not null)
+                {
+                    pending.Rollback();
+                    SaveCpaVersion(pending.PreviousVersion);
+                    pending.FinishRollback();
+                    resumeRecoveredService = pending.WasRunning;
+                    AddDiagnosticLine("[launcher] 未完成的 CPA 更新已恢复到旧版。");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _updateRecoveryBlocked = true;
+            OnPropertyChanged(nameof(CanEditSettings));
+            AddDiagnosticLine($"[launcher] 更新恢复未完成：{ex.Message}");
+            MessageBox.Show("更新恢复未完成，已保留备份。请查看诊断。", "更新恢复", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
         if (_settings.LaunchLauncherOnWindowsStartup)
         {
             try { _startupManager.SetEnabled(true); }
@@ -663,7 +689,7 @@ public partial class MainViewModel : ViewModelBase
         await RefreshAsync();
         _refreshTimer.Start();
 
-        if (_settings.AutoStartService && _currentStatus == LauncherStatus.Stopped)
+        if (!_updateRecoveryBlocked && (resumeRecoveredService || _settings.AutoStartService) && _currentStatus == LauncherStatus.Stopped)
         {
             if (_settings.AutoStartDelaySeconds > 0)
             {
@@ -741,6 +767,13 @@ public partial class MainViewModel : ViewModelBase
         AddDiagnosticLine($"[launcher] {result.Message}");
 
         // Show setup wizard
+        var existingConfig = Path.Combine(cpaDir, "config.yaml");
+        if (File.Exists(existingConfig))
+        {
+            ConfigPath = existingConfig;
+            AddDiagnosticLine("[launcher] 已保留现有 config.yaml。");
+            return;
+        }
         var wizard = new Views.SetupWizardWindow
         {
             Owner = Application.Current.MainWindow
@@ -804,6 +837,11 @@ public partial class MainViewModel : ViewModelBase
             NotifyManagementSecretKeyChanged();
         }
         finally { _isLoadingSettings = false; }
+        if (_settingsStore.RecoveryNotice is { } notice)
+        {
+            AddDiagnosticLine($"[launcher] {notice}");
+            UpdateStatusText = notice;
+        }
     }
 
     private void SaveSettings()
@@ -816,6 +854,7 @@ public partial class MainViewModel : ViewModelBase
         catch (Exception ex)
         {
             AddDiagnosticLine($"[launcher] 保存设置失败：{ex.Message}");
+            ShowImportNotice("设置未保存，详情见诊断");
         }
     }
 
@@ -1038,9 +1077,9 @@ public partial class MainViewModel : ViewModelBase
     private static SolidColorBrush CreateBrush(string color)
         => new((Color)ColorConverter.ConvertFromString(color));
 
-    private bool CanStart() => !_processManager.IsManagedProcessRunning &&
+    private bool CanStart() => !IsUpdateInProgress && !_updateRecoveryBlocked && _settingsStore.CanSave && !_processManager.IsManagedProcessRunning &&
         (_currentStatus == LauncherStatus.Stopped || _currentStatus == LauncherStatus.StartFailed);
-    private bool CanStop() => _processManager.IsManagedProcessRunning &&
+    private bool CanStop() => !IsUpdateInProgress && _processManager.IsManagedProcessRunning &&
         (_currentStatus == LauncherStatus.Running || _currentStatus == LauncherStatus.Starting);
 
     private async Task StartServiceAsync()
@@ -1183,7 +1222,7 @@ public partial class MainViewModel : ViewModelBase
 
     private bool CanRunUpdateCommand()
     {
-        return !_isUpdateInProgress && !_isLauncherUpdateInProgress;
+        return !_isUpdateInProgress && !_isLauncherUpdateInProgress && !_updateRecoveryBlocked && _settingsStore.CanSave;
     }
 
     private async Task CheckAllUpdatesAsync()
@@ -1442,67 +1481,78 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+    private void SaveCpaVersion(string? version)
+    {
+        _settings.LastInstalledCpaVersion = version;
+        _settingsStore.Save(_settings);
+        OnPropertyChanged(nameof(CurrentCpaVersionDisplay));
+    }
+
     private async Task PerformUpdateAsync(CpaUpdateInfo info)
     {
+        if (!CanRunUpdateCommand()) return;
+        if (!_processManager.IsManagedProcessRunning && await ProbeServiceAsync())
+        {
+            MessageBox.Show("请先停止外部运行的 CPA，再重试更新。", "无法更新", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
         IsUpdateInProgress = true;
         OnPropertyChanged(nameof(UpdateProgressVisibility));
         UpdateProgress = 0;
-        UpdateStatusText = "正在下载更新...";
-
-        // Remember ownership so failure can restore a service we stopped ourselves.
+        var target = _settings.ExecutablePath!;
+        var config = _settings.ConfigPath!;
         var wasRunning = _processManager.IsManagedProcessRunning;
-        if (wasRunning)
+        CpaUpdateTransaction? transaction = null;
+        var downloading = true;
+        try
         {
-            AddDiagnosticLine("[launcher] 更新前停止 CPA 进程...");
-            await StopServiceAsync();
-        }
-
-        var progress = new Progress<(long downloaded, long total)>(p =>
-        {
-            if (p.total > 0)
-                UpdateProgress = (int)(p.downloaded * 100 / p.total);
-            UpdateStatusText = $"正在下载更新... {p.downloaded / 1024.0 / 1024.0:F1} / {p.total / 1024.0 / 1024.0:F1} MB";
-        });
-
-        var result = await _updateService.ApplyUpdateAsync(info, _settings.ExecutablePath!, progress);
-
-        IsUpdateInProgress = false;
-        OnPropertyChanged(nameof(UpdateProgressVisibility));
-
-        if (result.Success)
-        {
-            _settings.LastInstalledCpaVersion = info.TagName;
-            SaveSettings();
-            OnPropertyChanged(nameof(CurrentCpaVersionDisplay));
+            UpdateStatusText = "正在下载更新";
+            var progress = new Progress<(long downloaded, long total)>(p =>
+            {
+                if (!downloading) return;
+                if (p.total > 0) UpdateProgress = (int)(p.downloaded * 100 / p.total);
+                UpdateStatusText = $"正在下载更新 · {p.downloaded / 1024.0 / 1024.0:F1} MB";
+            });
+            var prepared = await _updateService.PrepareUpdateAsync(info, target,
+                _settings.LastInstalledCpaVersion, wasRunning, progress);
+            downloading = false;
+            if (!prepared.Success) throw new IOException(prepared.Message);
+            transaction = prepared.Transaction!;
+            UpdateStatusText = "正在验证新版";
+            await CpaUpdateCoordinator.ApplyAsync(transaction,
+                async () =>
+                {
+                    var stopped = await _processManager.StopAsync();
+                    if (!stopped.Success) throw new IOException(stopped.Message);
+                },
+                async isNewVersion =>
+                {
+                    _startupTimedOut = false;
+                    _currentStatus = LauncherStatus.Starting;
+                    var started = await _processManager.StartAsync(target, config);
+                    if (!started.Success) throw new IOException(started.Message);
+                    if (isNewVersion)
+                        transaction.RecordProcess(_processManager.ManagedProcessId ?? throw new IOException("新版 CPA 已退出。"));
+                },
+                WaitForServiceReadyAsync, SaveCpaVersion);
             UpdateStatusText = $"已更新到 {info.TagName}";
-            AddDiagnosticLine($"[launcher] {result.Message}");
-
-            var restart = MessageBox.Show(
-                $"{result.Message}\n\n是否立即启动 CPA？",
-                "更新成功",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Information);
-
-            if (restart == MessageBoxResult.Yes)
-            {
-                await StartServiceAsync();
-            }
+            AddDiagnosticLine($"[launcher] CPA {info.TagName} 已通过启动检查，更新完成。");
         }
-        else
+        catch (Exception ex)
         {
-            UpdateStatusText = "更新失败";
-            AddDiagnosticLine($"[launcher] {result.Message}");
-            if (wasRunning)
-            {
-                AddDiagnosticLine("[launcher] 更新未完成，正在重新启动原 CPA。");
-                await StartServiceAsync();
-            }
-            var message = wasRunning
-                ? (_processManager.IsManagedProcessRunning
-                    ? "更新失败，CPA 已恢复运行。"
-                    : "更新未完成，CPA 未能重新启动。请查看诊断。")
-                : "更新未完成。详情见诊断。";
-            MessageBox.Show(message, "更新失败", MessageBoxButton.OK, MessageBoxImage.Error);
+            UpdateStatusText = "更新未完成";
+            AddDiagnosticLine($"[launcher] {ex.Message}");
+            // A remaining journal must be recovered before another start or update.
+            if (transaction is not null && Directory.Exists(transaction.DirectoryPath))
+                _updateRecoveryBlocked = true;
+            MessageBox.Show("更新未完成。详情见诊断。", "更新失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally
+        {
+            downloading = false;
+            IsUpdateInProgress = false;
+            OnPropertyChanged(nameof(UpdateProgressVisibility));
+            await RefreshAsync(forceConfiguration: true);
         }
     }
 
@@ -1803,6 +1853,7 @@ public partial class MainViewModel : ViewModelBase
 
     private async Task ImportDroppedTokensCoreAsync(IReadOnlyList<string> filePaths)
     {
+        if (IsUpdateInProgress || _updateRecoveryBlocked) return;
         ClearTokenDropPreview();
         var evaluation = _tokenDropEvaluator.Evaluate(_authDirectory, filePaths);
         if (evaluation.IsValid)
@@ -2018,6 +2069,11 @@ public partial class MainViewModel : ViewModelBase
 
     private async Task ExitApplication()
     {
+        if (IsUpdateInProgress)
+        {
+            MessageBox.Show("更新进行中，请完成后再退出。", "CPA Dock", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
         if (_processManager.IsManagedProcessRunning)
         {
             var result = MessageBox.Show(

@@ -22,6 +22,29 @@ public sealed class CpaUpdateInstallationTests : IDisposable
     }
 
     [Fact]
+    public async Task Install_PreservesExistingConfigurationAndCredentials()
+    {
+        using var client = CreateClient();
+        File.WriteAllText(Path.Combine(directory, "config.yaml"), "existing config");
+        File.WriteAllText(Path.Combine(directory, "credential.json"), "existing credential");
+        var result = await new CpaUpdateService(client).InstallLatestAsync(directory, Info);
+        Assert.True(result.Success, result.Message);
+        Assert.Equal("existing config", File.ReadAllText(Path.Combine(directory, "config.yaml")));
+        Assert.Equal("existing credential", File.ReadAllText(Path.Combine(directory, "credential.json")));
+    }
+
+    [Fact]
+    public async Task Install_RejectsExistingExecutable_InsteadOfOverwritingIt()
+    {
+        using var client = CreateClient();
+        var path = Path.Combine(directory, "cli-proxy-api.exe");
+        File.WriteAllText(path, "existing binary");
+        var result = await new CpaUpdateService(client).InstallLatestAsync(directory, Info);
+        Assert.False(result.Success);
+        Assert.Equal("existing binary", File.ReadAllText(path));
+    }
+
+    [Fact]
     public async Task Update_ReplacesOnlyExecutable_PreservesConfig_AndRemovesTemporaryFiles()
     {
         using var client = CreateClient();
@@ -61,6 +84,8 @@ public sealed class CpaUpdateInstallationTests : IDisposable
         {
             using (var writer = new StreamWriter(zip.CreateEntry("cli-proxy-api.exe").Open())) writer.Write("new binary");
             using (var writer = new StreamWriter(zip.CreateEntry("config.example.yaml").Open())) writer.Write("sample");
+            using (var writer = new StreamWriter(zip.CreateEntry("config.yaml").Open())) writer.Write("package config");
+            using (var writer = new StreamWriter(zip.CreateEntry("credential.json").Open())) writer.Write("package credential");
         }
         return new HttpClient(new ZipHandler(bytes.ToArray()));
     }
