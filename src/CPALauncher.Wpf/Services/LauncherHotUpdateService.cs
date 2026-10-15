@@ -37,7 +37,7 @@ public sealed class LauncherHotUpdateService
             Directory.CreateDirectory(updateRoot);
             Directory.CreateDirectory(extractRoot);
 
-            await DownloadPackageAsync(info, zipPath, progress, ct);
+            await UpdatePackageDownloader.DownloadAsync(httpClient, info, zipPath, progress, ct);
             await Task.Run(() => ZipFile.ExtractToDirectory(zipPath, extractRoot, overwriteFiles: true), ct);
 
             var packageExecutablePath = LauncherExecutableNames
@@ -53,6 +53,11 @@ public sealed class LauncherHotUpdateService
             var packageDirectory = Path.GetDirectoryName(packageExecutablePath)!;
             var installDirectory = Path.GetDirectoryName(Path.GetFullPath(currentExecutablePath))!;
 
+            // Fail before the running launcher exits if its directory is read-only.
+            var writeProbe = Path.Combine(installDirectory, $".cpa-write-{Guid.NewGuid():N}");
+            using (new FileStream(writeProbe, FileMode.CreateNew, FileAccess.Write, FileShare.None,
+                1, FileOptions.DeleteOnClose)) { }
+
             await File.WriteAllTextAsync(applyScriptPath, BuildApplyScriptContent(), Encoding.UTF8, ct);
 
             return LauncherHotUpdatePreparationResult.Succeeded(new LauncherHotUpdatePackage(
@@ -65,7 +70,8 @@ public sealed class LauncherHotUpdateService
         catch (OperationCanceledException)
         {
             TryDeleteDirectory(updateRoot);
-            return LauncherHotUpdatePreparationResult.Failed("启动器热更新已取消。");
+            return LauncherHotUpdatePreparationResult.Failed(ct.IsCancellationRequested
+                ? "启动器热更新已取消。" : "启动器更新下载超时，请重试。");
         }
         catch (Exception ex)
         {
@@ -102,7 +108,7 @@ public sealed class LauncherHotUpdateService
             startInfo.ArgumentList.Add("-LauncherPath");
             startInfo.ArgumentList.Add(package.LauncherExecutablePath);
 
-            var updaterProcess = Process.Start(startInfo);
+            using var updaterProcess = Process.Start(startInfo);
             return updaterProcess is null
                 ? LauncherHotUpdateStartResult.Failed("热更新辅助进程启动失败。")
                 : LauncherHotUpdateStartResult.Succeeded();
@@ -113,96 +119,12 @@ public sealed class LauncherHotUpdateService
         }
     }
 
-    private async Task DownloadPackageAsync(
-        CpaUpdateInfo info,
-        string zipPath,
-        IProgress<(long downloaded, long total)>? progress,
-        CancellationToken ct)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Get, info.AssetDownloadUrl);
-        request.Headers.Add("User-Agent", "CPALauncher");
-
-        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-        response.EnsureSuccessStatusCode();
-
-        var totalBytes = response.Content.Headers.ContentLength ?? info.AssetSize;
-        long downloadedBytes = 0;
-
-        await using var contentStream = await response.Content.ReadAsStreamAsync(ct);
-        await using var fileStream = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
-
-        var buffer = new byte[81920];
-        int bytesRead;
-        while ((bytesRead = await contentStream.ReadAsync(buffer, ct)) > 0)
-        {
-            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
-            downloadedBytes += bytesRead;
-            progress?.Report((downloadedBytes, totalBytes));
-        }
-    }
-
     internal static string BuildApplyScriptContent()
     {
-        return """
-            param(
-                [Parameter(Mandatory = $true)][int]$ProcessId,
-                [Parameter(Mandatory = $true)][string]$PackageDirectory,
-                [Parameter(Mandatory = $true)][string]$InstallDirectory,
-                [Parameter(Mandatory = $true)][string]$LauncherPath
-            )
-
-            $ErrorActionPreference = "Stop"
-            $LogPath = Join-Path (Split-Path -Parent $PackageDirectory) "apply-launcher-update.log"
-
-            function Write-UpdateLog {
-                param([string]$Message)
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                Add-Content -LiteralPath $LogPath -Value "[$timestamp] $Message" -Encoding UTF8
-            }
-
-            try {
-                Write-UpdateLog "Waiting for CPALauncher process $ProcessId to exit."
-                try {
-                    Wait-Process -Id $ProcessId -Timeout 90 -ErrorAction SilentlyContinue
-                }
-                catch {
-                    Write-UpdateLog "Wait-Process finished with warning: $($_.Exception.Message)"
-                }
-
-                Start-Sleep -Milliseconds 600
-
-                $packageExe = @("CPA Dock.exe", "CPALauncher.exe") |
-                    ForEach-Object { Join-Path $PackageDirectory $_ } |
-                    Where-Object { Test-Path -LiteralPath $_ } |
-                    Select-Object -First 1
-                if (-not $packageExe) {
-                    throw "CPA Dock executable was not found in update package."
-                }
-
-                Write-UpdateLog "Copying update payload to $InstallDirectory."
-                Get-ChildItem -LiteralPath $PackageDirectory -Force | Where-Object {
-                    $_.Name -notin @("CPA Dock.exe", "CPALauncher.exe")
-                } | ForEach-Object {
-                    Copy-Item -LiteralPath $_.FullName -Destination $InstallDirectory -Recurse -Force
-                }
-                Copy-Item -LiteralPath $packageExe -Destination $LauncherPath -Force
-
-                Write-UpdateLog "Restarting CPALauncher from $LauncherPath."
-                Start-Process -FilePath $LauncherPath -WorkingDirectory $InstallDirectory
-
-                try {
-                    Remove-Item -LiteralPath $PackageDirectory -Recurse -Force -ErrorAction SilentlyContinue
-                    Remove-Item -LiteralPath (Join-Path (Split-Path -Parent $PackageDirectory) "package.zip") -Force -ErrorAction SilentlyContinue
-                }
-                catch {
-                    Write-UpdateLog "Cleanup skipped: $($_.Exception.Message)"
-                }
-            }
-            catch {
-                Write-UpdateLog "Update failed: $($_.Exception.Message)"
-                exit 1
-            }
-            """;
+        using var stream = typeof(LauncherHotUpdateService).Assembly.GetManifestResourceStream(
+            "CPALauncher.Services.ApplyLauncherUpdate.ps1")!;
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 
     private static void TryDeleteDirectory(string path)
