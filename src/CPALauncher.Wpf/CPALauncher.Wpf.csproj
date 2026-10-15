@@ -12,10 +12,10 @@
     <Product>CPA Dock</Product>
     <Description>CLIProxyAPI 的 Windows 桌面伴侣。</Description>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
-    <Version>0.4.0</Version>
-    <FileVersion>0.4.0.0</FileVersion>
-    <AssemblyVersion>0.4.0.0</AssemblyVersion>
-    <InformationalVersion>0.4.0</InformationalVersion>
+    <Version>0.4.1</Version>
+    <FileVersion>0.4.1.0</FileVersion>
+    <AssemblyVersion>0.4.1.0</AssemblyVersion>
+    <InformationalVersion>0.4.1</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Services\ApplyLauncherUpdate.ps1" LogicalName="CPALauncher.Services.ApplyLauncherUpdate.ps1" />
     <Resource Include="Assets\app.ico" />
     <Resource Include="Assets\Lucide-LICENSE.txt" />
   </ItemGroup>

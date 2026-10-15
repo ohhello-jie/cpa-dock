@@ -178,35 +178,14 @@ public sealed class CpaUpdateService
     {
         var dir = Path.GetDirectoryName(targetExePath)!;
         var tempZipPath = Path.Combine(dir, $"cpa-update-{Guid.NewGuid():N}.zip");
-        var backupPath = targetExePath + ".bak";
+        var backupPath = Path.Combine(dir, $"cpa-backup-{Guid.NewGuid():N}.exe");
+        string? extractedExePath = null;
 
         try
         {
-            // Download zip with progress
-            using var request = new HttpRequestMessage(HttpMethod.Get, info.AssetDownloadUrl);
-            request.Headers.Add("User-Agent", "CPALauncher");
-
-            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-            response.EnsureSuccessStatusCode();
-
-            var totalBytes = response.Content.Headers.ContentLength ?? info.AssetSize;
-            long downloadedBytes = 0;
-
-            await using (var contentStream = await response.Content.ReadAsStreamAsync(ct))
-            await using (var fileStream = new FileStream(tempZipPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true))
-            {
-                var buffer = new byte[81920];
-                int bytesRead;
-                while ((bytesRead = await contentStream.ReadAsync(buffer, ct)) > 0)
-                {
-                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
-                    downloadedBytes += bytesRead;
-                    progress?.Report((downloadedBytes, totalBytes));
-                }
-            }
+            await UpdatePackageDownloader.DownloadAsync(_httpClient, info, tempZipPath, progress, ct);
 
             // Extract cli-proxy-api.exe from zip
-            string? extractedExePath = null;
             using (var archive = ZipFile.OpenRead(tempZipPath))
             {
                 var entry = archive.Entries.FirstOrDefault(e =>
@@ -219,42 +198,41 @@ public sealed class CpaUpdateService
                 await Task.Run(() => entry.ExtractToFile(extractedExePath, overwrite: true), ct);
             }
 
-            // Backup old exe → replace with new
+            ct.ThrowIfCancellationRequested();
+            // Same-volume replacement avoids the gap between renaming the old and new executable.
             if (File.Exists(targetExePath))
-            {
-                if (File.Exists(backupPath))
-                    File.Delete(backupPath);
-                File.Move(targetExePath, backupPath);
-            }
-
-            try
-            {
+                File.Replace(extractedExePath, targetExePath, backupPath);
+            else
                 File.Move(extractedExePath, targetExePath);
-            }
-            catch
-            {
-                // Rollback: restore from backup
-                if (File.Exists(backupPath) && !File.Exists(targetExePath))
-                    File.Move(backupPath, targetExePath);
-                throw;
-            }
-
-            // Clean up backup and extracted temp
             TryDeleteFile(backupPath);
 
             return (true, $"CPA 已更新到 {info.TagName}。");
         }
         catch (OperationCanceledException)
         {
-            return (false, "更新已取消。");
+            return (false, ct.IsCancellationRequested ? "更新已取消。" : "更新下载超时，请重试。");
         }
         catch (Exception ex)
         {
+            try
+            {
+                // Win32 ReplaceFile may fail after moving the original to its backup (error 1177).
+                if (File.Exists(backupPath))
+                {
+                    if (File.Exists(targetExePath)) File.Replace(backupPath, targetExePath, null);
+                    else File.Move(backupPath, targetExePath);
+                }
+            }
+            catch (Exception recoveryError)
+            {
+                return (false, $"更新失败：{ex.Message}。恢复失败：{recoveryError.Message}。原程序备份：{backupPath}");
+            }
             return (false, $"更新失败：{ex.Message}");
         }
         finally
         {
             TryDeleteFile(tempZipPath);
+            if (extractedExePath is not null) TryDeleteFile(extractedExePath);
         }
     }
 

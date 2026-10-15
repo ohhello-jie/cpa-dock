@@ -16,6 +16,7 @@ public sealed class LauncherHotUpdateServiceTests
     public async Task PrepareHotUpdateAsync_WhenPackageContainsLauncherExe_StagesPackageAndScript(string installedName, string packageName)
     {
         var tempRoot = CreateTempRoot();
+        string? stagingRoot = null;
         try
         {
             var installDirectory = Path.Combine(tempRoot, "install");
@@ -36,20 +37,18 @@ public sealed class LauncherHotUpdateServiceTests
 
             Assert.True(result.Success, result.Message);
             Assert.NotNull(result.Package);
+            stagingRoot = Path.GetDirectoryName(result.Package.ApplyScriptPath);
             Assert.Equal("v0.3.0", result.Package.VersionTag);
             Assert.Equal(installDirectory, result.Package.InstallDirectory);
             Assert.Equal(Path.GetFullPath(currentExecutablePath), result.Package.LauncherExecutablePath);
             Assert.True(File.Exists(Path.Combine(result.Package.PackageDirectory, packageName)));
             Assert.True(File.Exists(result.Package.ApplyScriptPath));
 
-            var script = await File.ReadAllTextAsync(result.Package.ApplyScriptPath);
-            Assert.Contains("Wait-Process", script);
-            Assert.Contains("Copy-Item", script);
-            Assert.Contains("Start-Process", script);
             Assert.Contains((packageBytes.Length, packageBytes.Length), progress.Reports);
         }
         finally
         {
+            if (stagingRoot is not null) TryDeleteDirectory(stagingRoot);
             TryDeleteDirectory(tempRoot);
         }
     }

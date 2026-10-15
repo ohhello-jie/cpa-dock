@@ -1314,12 +1314,6 @@ public partial class MainViewModel : ViewModelBase
         _pendingLauncherUpdateInfo = null;
         LauncherUpdateStatusText = "正在重启以完成热更新...";
         AddDiagnosticLine($"[launcher] CPA Dock {info.TagName} 热更新已就绪，启动器即将重启。");
-        MessageBox.Show(
-            $"CPA Dock {info.TagName} 已下载完成，启动器将自动重启并完成更新。",
-            "启动器热更新",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
-
         ShutdownForLauncherHotUpdate();
     }
 
@@ -1455,8 +1449,9 @@ public partial class MainViewModel : ViewModelBase
         UpdateProgress = 0;
         UpdateStatusText = "正在下载更新...";
 
-        // Stop CPA if running
-        if (_processManager.IsManagedProcessRunning)
+        // Remember ownership so failure can restore a service we stopped ourselves.
+        var wasRunning = _processManager.IsManagedProcessRunning;
+        if (wasRunning)
         {
             AddDiagnosticLine("[launcher] 更新前停止 CPA 进程...");
             await StopServiceAsync();
@@ -1497,7 +1492,17 @@ public partial class MainViewModel : ViewModelBase
         {
             UpdateStatusText = "更新失败";
             AddDiagnosticLine($"[launcher] {result.Message}");
-            MessageBox.Show(result.Message, "更新失败", MessageBoxButton.OK, MessageBoxImage.Error);
+            if (wasRunning)
+            {
+                AddDiagnosticLine("[launcher] 更新未完成，正在重新启动原 CPA。");
+                await StartServiceAsync();
+            }
+            var message = wasRunning
+                ? (_processManager.IsManagedProcessRunning
+                    ? "更新失败，CPA 已恢复运行。"
+                    : "更新未完成，CPA 未能重新启动。请查看诊断。")
+                : "更新未完成。详情见诊断。";
+            MessageBox.Show(message, "更新失败", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

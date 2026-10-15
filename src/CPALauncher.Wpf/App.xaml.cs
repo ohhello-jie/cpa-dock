@@ -25,6 +25,12 @@ public partial class App : Application
         MainWindow = mainWindow;
         mainWindow.Show();
         _singleInstanceCoordinator.StartListening(HandleSingleInstanceActivation);
+        if (e.Args.Contains("--update-failed", StringComparer.OrdinalIgnoreCase))
+        {
+            Dispatcher.BeginInvoke(() => LauncherDialog.Show(
+                "更新未完成，已恢复旧版。请稍后重试。", "更新失败",
+                MessageBoxButton.OK, MessageBoxImage.Warning));
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)
