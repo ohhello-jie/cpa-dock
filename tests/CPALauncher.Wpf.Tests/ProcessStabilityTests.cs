@@ -12,7 +12,6 @@ public sealed class ProcessStabilityTests
         var root = Path.Combine(Path.GetTempPath(), "cpa-stability-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         using var manager = new CpaProcessManager();
-        var pids = new List<int>();
         try
         {
             var source = Path.Combine(root, "probe.cs");
@@ -37,24 +36,31 @@ public sealed class ProcessStabilityTests
                 {
                     var start = await manager.StartAsync(exe, config);
                     Assert.True(start.Success, start.Message);
-                    pids.Add(manager.ManagedProcessId!.Value);
+                    using var child = Process.GetProcessById(manager.ManagedProcessId!.Value);
                     await ready.Task.WaitAsync(TimeSpan.FromSeconds(10));
                     Assert.InRange(manager.GetRecentOutput().Count, 1, 400);
                     var stop = await manager.StopAsync();
                     Assert.True(stop.Success, stop.Message);
                     Assert.False(manager.IsManagedProcessRunning);
                     Assert.Null(manager.ManagedProcessId);
+                    Assert.True(child.HasExited);
                     Assert.True((await manager.StopAsync()).Success);
                 }
                 finally { manager.OutputReceived -= observe; }
             }
             Assert.Equal("isolated fixture", File.ReadAllText(config));
-            foreach (var pid in pids)
+        }
+        finally
+        {
+            await manager.StopAsync();
+            manager.Dispose();
+            // Windows can retain the executable mapping briefly after process exit.
+            for (var attempt = 0; ; attempt++)
             {
-                try { using var child = Process.GetProcessById(pid); Assert.True(child.HasExited); }
-                catch (ArgumentException) { }
+                try { Directory.Delete(root, true); break; }
+                catch (Exception ex) when (attempt < 20 && ex is IOException or UnauthorizedAccessException)
+                { await Task.Delay(100); }
             }
         }
-        finally { await manager.StopAsync(); Directory.Delete(root, true); }
     }
 }
