@@ -16,12 +16,12 @@ namespace CPALauncher.ViewModels;
 public partial class MainViewModel : ViewModelBase
 {
     private const string LauncherGitHubRepo = "ohhellojie/cpa-dock";
-    private const string ImportRestartingNotice = "已导入凭证，正在自动重启 CPA 以使其生效";
-    private const string ImportRestartedNotice = "已导入凭证，CPA 已自动重启并生效";
-    private const string ImportRestartFailedNotice = "凭证已导入，但自动重启失败，请手动重启 CPA";
-    private const string ImportExternalRestartNotice = "已导入凭证，如需立即生效，请手动重启当前 CPA";
+    private const string ImportRestartingNotice = "凭证已导入，正在重启 CPA";
+    private const string ImportRestartedNotice = "CPA 已重启，凭证已生效";
+    private const string ImportRestartFailedNotice = "凭证已导入。自动重启失败，请手动重启 CPA";
+    private const string ImportExternalRestartNotice = "凭证已导入，重启外部 CPA 后生效";
     private const string HiddenConfigurationValue = "**";
-    private const string ImportStoppedNotice = "已导入凭证，将在下次启动 CPA 时生效";
+    private const string ImportStoppedNotice = "凭证已导入，下次启动 CPA 时生效";
 
     private readonly CpaProcessManager _processManager = new();
     private readonly CpaConfigInspector _configInspector = new();
@@ -286,7 +286,7 @@ public partial class MainViewModel : ViewModelBase
         _isConfigurationInfoHidden && HasManagementSecretKey
             ? HiddenConfigurationValue
             : string.IsNullOrWhiteSpace(_settings.ManagementSecretKey)
-                ? "当前没有已保存的管理密钥。"
+                ? "未保存管理密钥"
                 : _settings.ManagementSecretKey;
 
     public bool HasManagementSecretKey => !string.IsNullOrWhiteSpace(_settings.ManagementSecretKey);
@@ -797,7 +797,7 @@ public partial class MainViewModel : ViewModelBase
                 AddDiagnosticLine("[launcher] 已自动生成管理密钥，并保存到启动器。");
                 TryCopyManagementSecretKeyToClipboard(
                     effectiveSecretKey,
-                    "已自动生成管理密钥，并复制到剪贴板。\n\n后续也可以在启动器首页点击“复制管理密钥”再次获取。");
+                    "管理密钥已生成并复制，可在首页再次复制。");
             }
             else
             {
@@ -807,7 +807,7 @@ public partial class MainViewModel : ViewModelBase
         else
         {
             AddDiagnosticLine("[launcher] 用户跳过了配置向导，请手动配置 config.yaml。");
-            MessageBox.Show("你可以稍后手动创建 config.yaml 并在路径设置中指定。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("请创建 config.yaml，并在设置中选择该文件。", "配置 CPA", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 
@@ -1033,7 +1033,7 @@ public partial class MainViewModel : ViewModelBase
             _currentStatus = LauncherStatus.Running;
             _statusPalette = StatusPalette.External;
             StatusText = "外部运行";
-            StatusDetail = "独立进程";
+            StatusDetail = "请在原程序中管理";
             ApplyStatusPalette();
             StatusGlyph = "\uE8A7";
             FooterStatusText = "检测到外部 CPA 实例";
@@ -1260,11 +1260,6 @@ public partial class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(LauncherUpdateActionText));
             LauncherUpdateStatusText = $"已是最新版本：{updateCheck.LatestTagName}";
             AddDiagnosticLine($"[launcher] CPA Dock 已是最新版本：{updateCheck.LatestTagName}。");
-            MessageBox.Show(
-                $"CPA Dock 已是最新版本：{updateCheck.LatestTagName}。",
-                "检查启动器更新",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
             return;
         }
 
@@ -1421,7 +1416,7 @@ public partial class MainViewModel : ViewModelBase
     {
         if (!LauncherSetupDecider.HasInstalledExecutable(_settings))
         {
-            MessageBox.Show("当前未检测到有效的 CPA 可执行文件，请先下载或重新配置路径。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("未找到 CPA 程序，请安装 CPA 或重新选择程序路径。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -1440,11 +1435,6 @@ public partial class MainViewModel : ViewModelBase
         {
             UpdateStatusText = $"已是最新版本：{updateCheck.LatestTagName}";
             AddDiagnosticLine($"[launcher] CPA 已是最新版本：{updateCheck.LatestTagName}。");
-            MessageBox.Show(
-                $"CPA 已是最新版本：{updateCheck.LatestTagName}。",
-                "检查更新",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
             return;
         }
 
@@ -1563,13 +1553,13 @@ public partial class MainViewModel : ViewModelBase
 
         if (latestCheck.Status == CpaUpdateCheckStatus.UpdateAvailable && latestCheck.UpdateInfo is not null)
         {
-            var message = $"已获取到最新版本 {latestCheck.UpdateInfo.TagName}，但当前已配置的 CPA 没有可识别版本号，无法自动判断是否需要更新。";
+            var message = $"当前 CPA 版本未识别，最新版本为 {latestCheck.UpdateInfo.TagName}。";
             AddDiagnosticLine($"[launcher] {message}");
 
             if (showMessageBox)
             {
                 MessageBox.Show(
-                    $"{message}\n\n建议先通过启动器重新安装一次，或手动确认当前 CPA 版本后再更新。",
+                    $"{message}\n请确认当前版本后更新，或通过启动器重新安装 CPA。",
                     "检查更新",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
@@ -1578,7 +1568,7 @@ public partial class MainViewModel : ViewModelBase
             return;
         }
 
-        var failureMessage = latestCheck.FailureReason ?? "当前 CPA 版本号无法识别，且获取最新版本信息失败。";
+        var failureMessage = latestCheck.FailureReason ?? "当前 CPA 版本未识别，获取最新版本失败。";
         AddDiagnosticLine($"[launcher] {failureMessage}");
 
         if (showMessageBox)
@@ -1765,7 +1755,7 @@ public partial class MainViewModel : ViewModelBase
         {
             var logs = string.Join(Environment.NewLine, DiagnosticLines);
             Clipboard.SetText(logs);
-            MessageBox.Show("日志已复制到剪贴板。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("全部日志已复制", "复制日志", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
@@ -1778,11 +1768,11 @@ public partial class MainViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(_settings.ManagementSecretKey))
         {
-            MessageBox.Show("当前没有已保存的管理密钥。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("未保存管理密钥。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             return Task.CompletedTask;
         }
 
-        TryCopyManagementSecretKeyToClipboard(_settings.ManagementSecretKey, "管理密钥已复制到剪贴板。");
+        TryCopyManagementSecretKeyToClipboard(_settings.ManagementSecretKey, "管理密钥已复制");
         return Task.CompletedTask;
     }
 
@@ -1799,7 +1789,7 @@ public partial class MainViewModel : ViewModelBase
             try
             {
                 File.WriteAllLines(dialog.FileName, DiagnosticLines);
-                MessageBox.Show("日志已导出。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("日志已导出", "导出日志", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -1993,7 +1983,7 @@ public partial class MainViewModel : ViewModelBase
 
         if (IsExternallyRunningForActivation())
         {
-            AddDiagnosticLine("[launcher] 当前 CPA 为外部运行，未自动重启；如需立即生效请手动重启");
+            AddDiagnosticLine("[launcher] 凭证已导入，重启外部 CPA 后生效");
             ShowImportNotice(ImportExternalRestartNotice);
             return;
         }
@@ -2152,7 +2142,7 @@ public partial class MainViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"管理密钥已生成，但复制到剪贴板失败：{ex.Message}", "管理密钥", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show($"复制管理密钥失败：{ex.Message}", "管理密钥", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -2161,18 +2151,18 @@ public partial class MainViewModel : ViewModelBase
         if (!LauncherSetupDecider.HasInstalledExecutable(_settings))
         {
             return string.IsNullOrWhiteSpace(_settings.ExecutablePath)
-                ? "请先下载或配置 CPA 可执行文件路径。"
-                : "当前配置的 CPA 可执行文件不存在，请重新下载或选择正确路径。";
+                ? "请安装 CPA 或选择已有程序。"
+                : "未找到 CPA 程序，请重新安装或选择程序路径。";
         }
 
         if (string.IsNullOrWhiteSpace(_settings.ConfigPath))
         {
-            return "请先配置 config.yaml 路径。";
+            return "请在设置中选择 config.yaml。";
         }
 
         if (!File.Exists(_settings.ConfigPath))
         {
-            return "当前配置的 config.yaml 不存在，请重新生成或选择正确路径。";
+            return "未找到 config.yaml，请重新生成或选择配置文件。";
         }
 
         return "请先配置 CPA 可执行文件和配置文件路径。";

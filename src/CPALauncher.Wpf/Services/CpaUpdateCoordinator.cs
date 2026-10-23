@@ -31,7 +31,7 @@ public static class CpaUpdateCoordinator
                 if (stopped && transaction.WasRunning)
                 {
                     await start(false);
-                    if (!await isReady()) throw new IOException("旧版已恢复，但服务尚未就绪。");
+                    if (!await isReady()) throw new IOException("旧版已恢复，服务尚未就绪。");
                 }
                 transaction.FinishRollback();
             }

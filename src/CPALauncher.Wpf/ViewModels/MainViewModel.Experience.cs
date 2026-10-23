@@ -64,7 +64,7 @@ public partial class MainViewModel
         : _statusPalette == StatusPalette.External ? "导入后请在原程序中重启 CPA。"
         : "导入到当前认证目录，启动 CPA 后生效。";
     public string ProcessCheckText => _processManager.IsManagedProcessRunning ? $"运行中 · PID {ManagedProcessId}"
-        : _statusPalette == StatusPalette.External ? "外部运行 · 不由启动器管理" : "无托管进程";
+        : _statusPalette == StatusPalette.External ? "外部运行" : "无托管进程";
     public string ConfigurationCheckText => _runtimeInfo is null ? _lastConfigurationError ?? "未配置" : "可读取";
     public string HttpCheckText => _runtimeInfo is null ? "未配置" : _serviceReachable ? "响应正常" : "未响应";
     public string ListenerDisplay => FormatConfigurationValue(_runtimeInfo is null ? "等待配置" : $"{_runtimeInfo.BindHost}:{_runtimeInfo.Port}");
@@ -115,8 +115,8 @@ public partial class MainViewModel
             };
             if (dialog.ShowDialog(Application.Current.MainWindow) == true) await ImportDroppedTokensAsync(dialog.FileNames);
         }, () => !string.IsNullOrWhiteSpace(_authDirectory));
-        CopyServiceUrlCommand = new RelayCommand(() => CopyText(_runtimeInfo?.BaseUrl ?? "", "服务地址已复制。"), () => _runtimeInfo is not null);
-        CopyVisibleLogsCommand = new RelayCommand(() => CopyText(string.Join(Environment.NewLine, DiagnosticView.Cast<string>()), "当前日志已复制。"));
+        CopyServiceUrlCommand = new RelayCommand(() => CopyText(_runtimeInfo?.BaseUrl ?? "", "服务地址已复制"), () => _runtimeInfo is not null);
+        CopyVisibleLogsCommand = new RelayCommand(() => CopyText(string.Join(Environment.NewLine, DiagnosticView.Cast<string>()), "当前日志已复制"));
         OpenAuthDirectoryCommand = new RelayCommand(() => OpenExistingPath(_authDirectory), () => Directory.Exists(_authDirectory));
         OpenConfigurationFileCommand = new RelayCommand(() =>
         {

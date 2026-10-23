@@ -80,7 +80,7 @@ $ReadmePath = Join-Path $PackageDir "README.txt"
     "CPA Dock",
     "",
     "1. 解压到任意目录，运行 CPA Dock.exe。",
-    "2. 在设置中选择已有 CPA 程序与 config.yaml，或点击「安装 CPA」。",
+    "2. 点击安装 CPA，或在设置中选择已有 CPA 程序与 config.yaml。",
     "3. 启动 CPA，打开管理页。",
     "",
     "设置：%AppData%\CPALauncher\settings.json",

@@ -10,7 +10,7 @@
     <RootNamespace>CPALauncher</RootNamespace>
     <Company>CPADock</Company>
     <Product>CPA Dock</Product>
-    <Description>CLIProxyAPI 的 Windows 桌面伴侣。</Description>
+    <Description>CLIProxyAPI 的 Windows 桌面启动器。</Description>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <Version>0.4.3</Version>
     <FileVersion>0.4.3.0</FileVersion>

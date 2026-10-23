@@ -42,7 +42,7 @@ public sealed class LauncherSettingsStore(string? settingsDirectoryPath = null)
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 savingBlocked = true;
-                RecoveryNotice = "已读取设置备份，但无法恢复原文件；暂停保存设置。";
+                RecoveryNotice = "正在使用设置备份。原文件恢复失败，已暂停保存设置。";
             }
             return settings!;
         }

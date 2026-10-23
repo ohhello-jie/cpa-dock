@@ -22,7 +22,7 @@ public sealed class MainViewModelTokenImportActivationTests
         await harness.ViewModel.HandleTokenImportActivationForTestAsync(result);
 
         Assert.Equal(["stop", "start"], harness.ServiceActions);
-        Assert.Equal("已导入凭证，CPA 已自动重启并生效", harness.ViewModel.ImportNoticeText);
+        Assert.Equal("CPA 已重启，凭证已生效", harness.ViewModel.ImportNoticeText);
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public sealed class MainViewModelTokenImportActivationTests
         await harness.ViewModel.HandleTokenImportActivationForTestAsync(result);
 
         Assert.Empty(harness.ServiceActions);
-        Assert.Equal("已导入凭证，如需立即生效，请手动重启当前 CPA", harness.ViewModel.ImportNoticeText);
+        Assert.Equal("凭证已导入，重启外部 CPA 后生效", harness.ViewModel.ImportNoticeText);
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public sealed class MainViewModelTokenImportActivationTests
         await harness.ViewModel.HandleTokenImportActivationForTestAsync(result);
 
         Assert.Empty(harness.ServiceActions);
-        Assert.Equal("已导入凭证，将在下次启动 CPA 时生效", harness.ViewModel.ImportNoticeText);
+        Assert.Equal("凭证已导入，下次启动 CPA 时生效", harness.ViewModel.ImportNoticeText);
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public sealed class MainViewModelTokenImportActivationTests
 
         await harness.ViewModel.HandleTokenImportActivationForTestAsync(result);
 
-        Assert.Equal("凭证已导入，但自动重启失败，请手动重启 CPA", harness.ViewModel.ImportNoticeText);
+        Assert.Equal("凭证已导入。自动重启失败，请手动重启 CPA", harness.ViewModel.ImportNoticeText);
         Assert.Contains(harness.DiagnosticLines, line => line.Contains("自动重启失败", StringComparison.Ordinal));
     }
 }
