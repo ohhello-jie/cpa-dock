@@ -52,6 +52,9 @@ jobs:
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: 8.0.x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Build and verify package
         shell: pwsh
         run: ./scripts/publish-win-x64.ps1

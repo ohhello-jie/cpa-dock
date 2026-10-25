@@ -7,6 +7,10 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
+& python (Join-Path $PSScriptRoot 'privacy_guard.py') --history
+if ($LASTEXITCODE -ne 0) { throw 'Public history privacy inspection failed.' }
+& python (Join-Path $PSScriptRoot 'privacy_guard.py')
+if ($LASTEXITCODE -ne 0) { throw 'Source privacy inspection failed.' }
 $ProjectFile = Join-Path $ProjectRoot "src\CPALauncher.Wpf\CPALauncher.Wpf.csproj"
 $PublishProfile = "SingleFile"
 
@@ -41,6 +45,7 @@ $PublishArgs = @(
 
 if ($FrameworkDependent) {
     $PublishArgs += "-p:SelfContained=false"
+    $PublishArgs += "-p:EnableCompressionInSingleFile=false"
 }
 else {
     $PublishArgs += "-p:SelfContained=true"

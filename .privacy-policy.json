@@ -1,0 +1,43 @@
+{
+  "public_companies": [
+    "CPADock",
+    "CPA Dock",
+    "CPALauncher"
+  ],
+  "binary_format": "dotnet",
+  "owned_binaries": [
+    "CPA Dock.exe",
+    "CPALauncher.exe",
+    "CPA Dock.dll",
+    "CPALauncher.dll"
+  ],
+  "private_files": [
+    "AGENTS.md",
+    "docs/MVP.md"
+  ],
+  "reviewed_images": {
+    "docs/screenshot.png": [
+      "023fcf8c0e047c6c1e5a2b158c7db794bc142e23ac80f8d8b1f4f4a8672edddd",
+      "44130c44f96ca44f0b77da640357a66587ed567cce71311c3e6c88c6fafee38e",
+      "4b0d5853508af877b162c4364aa17440597341ac08612fbe98cd00838d734153",
+      "72185ac927bd03a62f448bd0fa41297d46cf09ac554bdee7e9d2d8dd41599dbe",
+      "a58560bcaee5be4f0610b032ef4a465fb54b66947bf5739a4001ddb3f426d324",
+      "bca5adebaa91c6f4dd9800f561040022ddebb455757690ee1ae4a147dae480ff"
+    ],
+    "src/CPALauncher.Wpf/Assets/app.ico": [
+      "702f050ab9f8bee1b3a36c8dc7279bbd6f941b16542cfad3293fccd3f4bd4fa4",
+      "902d0e9b6b7b43b90712550f3e20c447dfe5cf975f0b0187fdcf8425352965f1",
+      "b094c9b0cac21265e66cda5af84e0ef31b38601a0bc2099dedb18758e078825f"
+    ],
+    "src/CPALauncher.Wpf/Assets/logo.png": [
+      "8cc14cee9e021215d4f91a2113c0f41b3f05ad3ebc2aba2f73c387bdef101fdf"
+    ]
+  },
+  "owned_python_modules": [],
+  "public_data_files": [],
+  "public_git_names": [
+    "ohhellojie",
+    "GitHub",
+    "github-actions[bot]"
+  ]
+}

@@ -1,0 +1,22 @@
+name: Privacy
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  privacy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test privacy checks
+        run: python -m unittest discover -s tests -p test_privacy_guard.py -v
+      - name: Check public history
+        run: python scripts/privacy_guard.py --history
+      - run: git diff --check

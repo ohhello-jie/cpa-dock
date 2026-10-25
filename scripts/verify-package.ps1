@@ -14,5 +14,7 @@ try {
     finally { $stream.Dispose(); $sha.Dispose() }
     if ($packedHash -ne (Get-FileHash -LiteralPath $ExecutablePath -Algorithm SHA256).Hash) { throw 'Packaged executable does not match build output.' }
     if ($entry.Length -eq 0) { throw 'Packaged executable is empty.' }
-    Write-Host 'Package verified: file list and executable SHA-256 match.'
+    & python (Join-Path $PSScriptRoot 'privacy_guard.py') --asset $ExecutablePath --asset $ZipPath
+    if ($LASTEXITCODE -ne 0) { throw 'Package privacy inspection failed.' }
+    Write-Host 'Package verified: file list, executable SHA-256 and privacy checks passed.'
 } finally { $archive.Dispose() }
